@@ -20,5 +20,13 @@
         <file>Images/svg/vitamins.svg</file>
         <file>components/CustomButton.qml</file>
         <file>components/CustomComboBox.qml</file>
+        <file>Screens/PersonalDataScreen.qml</file>
+        <file>components/CustomTextField.qml</file>
+        <file>components/FooterButton.qml</file>
+        <file>Screens/CalendarScreen.qml</file>
+        <file>components/Footer.qml</file>
+        <file>Images/svg/home.svg</file>
+        <file>Images/svg/profile.svg</file>
+        <file>Images/svg/analize.svg</file>
     </qresource>
 </RCC>

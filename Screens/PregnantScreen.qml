@@ -110,7 +110,8 @@ Item {
                     width: parent.width
                     text: "Подтвердить"
                     fontSize: Math.min(16, root.width * 0.045)
-                    onClicked: console.log("Выбрана неделя:", currentWeek)
+                    onClicked: stackView.push(
+                                   "qrc:/Screens/PersonalDataScreen.qml")
                 }
 
                 // Кнопка назад

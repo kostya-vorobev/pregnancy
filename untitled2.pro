@@ -24,10 +24,14 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 DISTFILES += \
     Screens/MainScreen.qml \
+    Screens/PersonalDataScreen.qml \
     Screens/PlanningScreen.qml \
     Screens/PregnantScreen.qml \
     Screens/SplashScreen.qml \
     Screens/WelcomeScreen.qml \
     components/CustomButton.qml \
-    components/CustomComboBox.qml
+    components/CustomComboBox.qml \
+    components/CustomTextField.qml \
+    components/Footer.qml \
+    components/FooterButton.qml
 
