@@ -1,0 +1,24 @@
+<RCC>
+    <qresource prefix="/">
+        <file>Screens/PlanningScreen.qml</file>
+        <file>Screens/PregnantScreen.qml</file>
+        <file>Screens/SplashScreen.qml</file>
+        <file>main.qml</file>
+        <file>Screens/WelcomeScreen.qml</file>
+        <file>Screens/MainScreen.qml</file>
+        <file>Images/logo.png</file>
+        <file>Fonts/Comfortaa-VariableFont_wght.ttf</file>
+        <file>Fonts/static/Comfortaa-Bold.ttf</file>
+        <file>Fonts/static/Comfortaa-Light.ttf</file>
+        <file>Fonts/static/Comfortaa-Medium.ttf</file>
+        <file>Fonts/static/Comfortaa-Regular.ttf</file>
+        <file>Fonts/static/Comfortaa-SemiBold.ttf</file>
+        <file>Images/svg/arrow_down.svg</file>
+        <file>Images/svg/calendar.svg</file>
+        <file>Images/svg/doctor.svg</file>
+        <file>Images/svg/health.svg</file>
+        <file>Images/svg/vitamins.svg</file>
+        <file>components/CustomButton.qml</file>
+        <file>components/CustomComboBox.qml</file>
+    </qresource>
+</RCC>
