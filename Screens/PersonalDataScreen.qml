@@ -173,7 +173,7 @@ Item {
                         var mainWin = ApplicationWindow.window
                         if (mainWin)
                             mainWin.showFooterRequested(true)
-                        stackView.pop()
+                        stackView.push("qrc:/Screens/HomeScreen.qml")
                     }
                 }
 

@@ -28,5 +28,13 @@
         <file>Images/svg/home.svg</file>
         <file>Images/svg/profile.svg</file>
         <file>Images/svg/analize.svg</file>
+        <file>Screens/HomeScreen.qml</file>
+        <file>components/NoteEditor.qml</file>
+        <file>components/FloatingActionButton.qml</file>
+        <file>components/DayInfoPopup.qml</file>
+        <file>Screens/AnalizeScreen.qml</file>
+        <file>components/AnalysisSection.qml</file>
+        <file>components/HistoryPopup.qml</file>
+        <file>components/AddAnalysisDialog.qml</file>
     </qresource>
 </RCC>
