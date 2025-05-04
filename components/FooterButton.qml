@@ -3,7 +3,7 @@ import QtQuick.Controls
 
 Item {
     id: root
-    width: parent.width / 4
+    width: parent.width / 5
     height: parent.height
     property alias iconSource: icon.source
 

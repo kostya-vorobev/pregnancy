@@ -41,11 +41,19 @@ Rectangle {
             }
         }
 
+        // Кнопка "Анализы"
+        MyComponents.FooterButton {
+            iconSource: "qrc:/Images/svg/menu.svg"
+            onClicked: {
+                stackView.clear()
+                stackView.push("qrc:/Screens/MenuScreen.qml")
+            }
+        }
+
         // Кнопка "Профиль"
         MyComponents.FooterButton {
             iconSource: "qrc:/Images/svg/profile.svg"
             onClicked: {
-                stackView.clear()
                 stackView.push("qrc:/Screens/ProfileScreen.qml")
             }
         }

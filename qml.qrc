@@ -36,5 +36,21 @@
         <file>components/AnalysisSection.qml</file>
         <file>components/HistoryPopup.qml</file>
         <file>components/AddAnalysisDialog.qml</file>
+        <file>components/ParameterDetailsPopup.qml</file>
+        <file>components/GearButton.qml</file>
+        <file>components/CustomScrollBar.qml</file>
+        <file>components/CategoryTabs.qml</file>
+        <file>Screens/ProfileScreen.qml</file>
+        <file>Screens/NotificationSettings.qml</file>
+        <file>components/SwitchOption.qml</file>
+        <file>Screens/MenuScreen.qml</file>
+        <file>Images/svg/menu.svg</file>
+        <file>components/MenuTile.qml</file>
+        <file>Images/icons/checklist.svg</file>
+        <file>Images/icons/article.svg</file>
+        <file>Images/icons/counter.svg</file>
+        <file>Images/icons/dumbbell.svg</file>
+        <file>Images/icons/idea.svg</file>
+        <file>Images/icons/scales.svg</file>
     </qresource>
 </RCC>

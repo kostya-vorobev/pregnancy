@@ -13,6 +13,7 @@ Column {
     property color backgroundColor: "#f5f5f5"
     property int itemHeight: 72
     property int itemRadius: 8
+    signal showDetailsRequested(var parameterData, string parameterName)
     spacing: 12
 
     // Заголовок секции с иконкой
@@ -31,12 +32,12 @@ Column {
             Layout.fillWidth: true
         }
 
-        Label {
-            text: "⚙️"
-            font.pixelSize: 16
-            MouseArea {
-                anchors.fill: parent
-                onClicked: console.log("Настройки раздела", title)
+        GearButton {
+            tooltipText: "Настройки " + title
+
+            onClicked: {
+                console.log("Настройки раздела", title)
+                // Дополнительные действия при клике
             }
         }
     }
@@ -207,9 +208,13 @@ Column {
 
         MouseArea {
             anchors.fill: parent
-            onClicked: delegateRoot.clicked()
+            onClicked: {
+                delegateRoot.clicked()
+                // Передаем данные в родительский компонент
+                root.showDetailsRequested(parameterData, parameterName)
+            }
             hoverEnabled: true
-            onEntered: delegateRoot.color = Qt.dighter(root.backgroundColor,
+            onEntered: delegateRoot.color = Qt.lighter(root.backgroundColor,
                                                        1.1)
             onExited: delegateRoot.color = root.backgroundColor
         }

@@ -111,12 +111,13 @@ Item {
         anchors.fill: parent
         spacing: 10
 
-        // Панель поиска и фильтров
+        // 1. Панель поиска и фильтров (фиксированная высота)
         RowLayout {
             Layout.fillWidth: true
+            Layout.preferredHeight: 50 // Явно задаем высоту
             spacing: 10
 
-            TextField {
+            MyComponents.CustomTextField {
                 id: searchField
                 Layout.fillWidth: true
                 placeholderText: "Поиск показателей..."
@@ -124,6 +125,8 @@ Item {
             }
 
             MyComponents.CustomButton {
+                Layout.preferredWidth: 100
+                Layout.preferredHeight: 40
                 text: "Сброс"
                 onClicked: {
                     searchQuery = ""
@@ -132,73 +135,94 @@ Item {
             }
         }
 
-        // Переключение категорий
-        TabBar {
-            id: tabBar
+        // 2. Переключение категорий (фиксированная высота)
+        MyComponents.CategoryTabs {
+            id: categoryTabs
             Layout.fillWidth: true
+            Layout.preferredHeight: 60 // Явно задаем высоту
             currentIndex: 0
-
-            Repeater {
-                model: ["Кровь", "Моча", "УЗИ"]
-                TabButton {
-                    text: modelData
-                    onClicked: selectedCategory = ["blood", "urine", "ultrasound"][index]
-                }
-            }
+            onCategorySelected: category => {
+                                    console.log("Выбрана категория:", category)
+                                    selectedCategory = category
+                                }
         }
 
-        // Список показателей
-        ScrollView {
+        // 3. Список показателей (гибкое пространство)
+        Item {
             Layout.fillWidth: true
-            Layout.fillHeight: true
-            clip: true
+            Layout.fillHeight: true // Занимает все оставшееся пространство
 
-            Column {
-                width: parent.width
-                spacing: 8
+            Flickable {
+                id: scrollView
+                anchors.fill: parent
+                contentWidth: width
+                contentHeight: contentColumn.height
+                clip: true
 
-                Repeater {
-                    model: Object.keys(filteredData[selectedCategory] || {})
+                Column {
+                    id: contentColumn
+                    width: scrollView.width
+                    spacing: 20
 
-                    MyComponents.AnalysisSection {
-                        width: parent.width
-                        title: "Биохимия крови"
-                        dataModel: {
-                            "glucose": {
-                                "value": 5.1,
-                                "min": 3.9,
-                                "max": 6.1,
-                                "unit": "ммоль/л",
-                                "trend": "stable"
-                            },
-                            "creatinine": {
-                                "value": 78,
-                                "min": 50,
-                                "max": 90,
-                                "unit": "мкмоль/л"
+                    Repeater {
+                        model: Object.keys(filteredData[selectedCategory] || {})
+
+                        MyComponents.AnalysisSection {
+                            width: contentColumn.width - 20 // Добавляем отступы
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            title: "Биохимия крови"
+                            dataModel: {
+                                "glucose": {
+                                    "value": 5.1,
+                                    "min": 3.9,
+                                    "max": 6.1,
+                                    "unit": "ммоль/л",
+                                    "trend": "stable"
+                                },
+                                "creatinine": {
+                                    "value": 78,
+                                    "min": 50,
+                                    "max": 90,
+                                    "unit": "мкмоль/л"
+                                }
+                            }
+                            backgroundColor: "#f0f8ff"
+                            itemHeight: 80
+                            onShowDetailsRequested: {
+                                parameterDetailsPopup.parameterData = parameterData
+                                parameterDetailsPopup.parameterName = parameterName
+                                parameterDetailsPopup.open()
                             }
                         }
-                        backgroundColor: "#f0f8ff"
-                        itemHeight: 80
                     }
                 }
             }
         }
 
+        // 5. Попап (не занимает места в layout)
+        MyComponents.ParameterDetailsPopup {
+            id: parameterDetailsPopup
+            anchors.centerIn: Overlay.overlay
+        }
+
         // Кнопки действий
         RowLayout {
             Layout.fillWidth: true
+            Layout.preferredHeight: 60
             spacing: 10
+            anchors.horizontalCenter: parent.horizontalCenter
 
             MyComponents.CustomButton {
                 text: "Добавить анализ"
                 Layout.fillWidth: true
+                Layout.preferredHeight: 50
                 onClicked: addAnalysisDialog.open()
             }
 
             MyComponents.CustomButton {
                 text: "История"
                 Layout.fillWidth: true
+                Layout.preferredHeight: 50
                 onClicked: historyPopup.open()
             }
         }
@@ -305,5 +329,6 @@ Item {
     MyComponents.HistoryPopup {
         id: historyPopup
         anchors.centerIn: parent
+        parameterName: "История показаний"
     }
 }

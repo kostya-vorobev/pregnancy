@@ -5,6 +5,7 @@ import QtQuick.Effects
 // Импорт компонентов
 ApplicationWindow {
     id: mainWindow
+
     width: Math.min(Screen.width * 0.9, 400)
     height: Math.min(Screen.height * 0.9, 800)
     visible: true
@@ -23,12 +24,18 @@ ApplicationWindow {
     function setFooterVisible(visible) {
         showFooter = visible
     }
+    Item {
+        id: safeItemTop
+        anchors.top: parent.top
+        height: 20
+    }
 
     StackView {
+
         id: stackView
         initialItem: "qrc:/Screens/WelcomeScreen.qml"
         anchors {
-            top: parent.top
+            top: safeItemTop.bottom
             left: parent.left
             right: parent.right
             bottom: showFooter ? footer.top : parent.bottom
@@ -38,9 +45,15 @@ ApplicationWindow {
     // Подключаем нижнюю панель через прямой путь
     Loader {
         id: footer
-        anchors.bottom: parent.bottom
+        anchors.bottom: safeItemBottom.top
         visible: showFooter
         width: parent.width
         source: "qrc:/components/Footer.qml"
+    }
+
+    Item {
+        id: safeItemBottom
+        anchors.bottom: parent.bottom
+        height: 20
     }
 }
