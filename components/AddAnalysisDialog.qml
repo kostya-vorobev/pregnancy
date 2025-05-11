@@ -6,7 +6,8 @@ import "../components" as MyComponents
 Popup {
     id: root
     width: Math.min(parent.width * 0.9, 400)
-    height: Math.min(parent.height * 0.8, 700) // Увеличил максимальную высоту
+    height: Math.min(contentColumn.implicitHeight + 40,
+                     parent.height * 0.8) // Динамическая высота
     modal: true
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     padding: 20
@@ -32,14 +33,20 @@ Popup {
     }
 
     Flickable {
+        id: flickable
         anchors.fill: parent
         contentWidth: contentColumn.width
         contentHeight: contentColumn.height
         clip: true
+        boundsBehavior: Flickable.StopAtBounds
+
+        ScrollBar.vertical: ScrollBar {
+            policy: ScrollBar.AsNeeded
+        }
 
         ColumnLayout {
             id: contentColumn
-            width: parent.width - root.padding * 2
+            width: flickable.width - root.padding * 2
             spacing: 15
 
             Label {
@@ -53,8 +60,8 @@ Popup {
             // Выбор категории
             ColumnLayout {
                 spacing: 5
-                Layout.fillWidth: true
 
+                width: parent.width
                 Label {
                     text: "Категория:"
                     font.pixelSize: 16
@@ -63,7 +70,7 @@ Popup {
                 MyComponents.CustomComboBox {
                     id: categoryCombo
                     model: categories.map(item => item.name)
-                    Layout.fillWidth: true
+                    width: parent.width
                     Layout.preferredHeight: 40
                     onCurrentIndexChanged: parameterCombo.currentIndex = -1
                 }
@@ -72,7 +79,7 @@ Popup {
             // Выбор параметра
             ColumnLayout {
                 spacing: 5
-                Layout.fillWidth: true
+                width: parent.width
                 visible: categoryCombo.currentIndex >= 0
 
                 Label {
@@ -84,15 +91,15 @@ Popup {
                     id: parameterCombo
                     model: categoryCombo.currentIndex
                            >= 0 ? categories[categoryCombo.currentIndex].params : []
-                    Layout.fillWidth: true
+                    width: parent.width
                     Layout.preferredHeight: 40
                 }
             }
 
             // Ввод значения
             ColumnLayout {
-                spacing: 5
-                Layout.fillWidth: true
+                spacing: 15
+                width: parent.width
                 visible: parameterCombo.currentIndex >= 0
 
                 Label {
@@ -105,7 +112,8 @@ Popup {
                     validator: DoubleValidator {
                         bottom: 0
                     }
-                    Layout.fillWidth: true
+
+                    width: parent.width
                     Layout.preferredHeight: 40
                     placeholderText: "Введите значение"
                 }
@@ -114,28 +122,17 @@ Popup {
             // Выбор даты
             ColumnLayout {
                 spacing: 5
-                Layout.fillWidth: true
+                width: parent.width
 
                 Label {
                     text: "Дата анализа:"
                     font.pixelSize: 16
                 }
 
-                RowLayout {
-                    spacing: 10
-                    Layout.fillWidth: true
-
-                    DatePicker {
-                        id: datePicker
-                        Layout.fillWidth: true
-                    }
-
-                    MyComponents.CustomButton {
-                        text: "Сегодня"
-                        Layout.preferredWidth: 100
-                        Layout.preferredHeight: 40
-                        onClicked: datePicker.selectedDate = new Date()
-                    }
+                DatePicker {
+                    id: datePicker
+                    width: parent.width * 0.6
+                    height: 40
                 }
             }
 
@@ -180,7 +177,7 @@ Popup {
             id: dayCombo
             model: 31
             currentIndex: selectedDate.getDate() - 1
-            Layout.preferredWidth: 80
+            Layout.preferredWidth: 60
             Layout.preferredHeight: 40
             onActivated: selectedDate = new Date(selectedDate.getFullYear(),
                                                  selectedDate.getMonth(),
@@ -191,7 +188,7 @@ Popup {
             id: monthCombo
             model: ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"]
             currentIndex: selectedDate.getMonth()
-            Layout.preferredWidth: 100
+            Layout.preferredWidth: 80
             Layout.preferredHeight: 40
             onActivated: selectedDate = new Date(selectedDate.getFullYear(),
                                                  currentIndex,
@@ -212,7 +209,7 @@ Popup {
                 var currentYear = new Date().getFullYear()
                 return selectedDate.getFullYear() - currentYear + 1
             }
-            Layout.preferredWidth: 100
+            Layout.preferredWidth: 80
             Layout.preferredHeight: 40
             onActivated: selectedDate = new Date(model[currentIndex],
                                                  selectedDate.getMonth(),

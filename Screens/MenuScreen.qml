@@ -8,9 +8,12 @@ Item {
     width: parent.width
     height: parent.height
 
-    property color primaryColor: "#9c27b0"
-    property color textColor: "#4a148c"
+    property color primaryColor: "white"
+    property color textColor: "white"
     property real defaultRadius: 14
+
+    // Добавляем сигнал для обработки нажатий
+    signal tileClicked(string screenUrl)
 
     Rectangle {
         anchors.fill: parent
@@ -44,7 +47,7 @@ Item {
                     pixelSize: Math.min(24, root.width * 0.07)
                     weight: Font.Bold
                 }
-                color: textColor
+                color: "#9c27b0"
                 Layout.alignment: Qt.AlignHCenter
             }
 
@@ -60,7 +63,7 @@ Item {
                     iconSource: "qrc:/Images/icons/checklist.svg"
                     title: "Чеклист"
                     subtitle: "беременности"
-                    tileColor: "#8e24aa"
+                    tileColor: textColor
                     onClicked: stackView.push(
                                    "qrc:/Screens/PregnancyChecklist.qml")
                     Layout.preferredWidth: (root.width - 40 - parent.columnSpacing) / 2
@@ -71,7 +74,7 @@ Item {
                     iconSource: "qrc:/Images/icons/dumbbell.svg"
                     title: "Упражнения"
                     subtitle: "для беременных"
-                    tileColor: "#7b1fa2"
+                    tileColor: textColor
                     onClicked: stackView.push(
                                    "qrc:/Screens/PregnancyExercises.qml")
                     Layout.preferredWidth: (root.width - 40 - parent.columnSpacing) / 2
@@ -83,7 +86,7 @@ Item {
                     iconSource: "qrc:/Images/icons/idea.svg"
                     title: "Советы"
                     subtitle: "при беременности"
-                    tileColor: "#6a1b9a"
+                    tileColor: textColor
                     onClicked: stackView.push("qrc:/Screens/PregnancyTips.qml")
                     Layout.preferredWidth: (root.width - 40 - parent.columnSpacing) / 2
                     Layout.preferredHeight: Layout.preferredWidth * 1.2
@@ -93,7 +96,7 @@ Item {
                     iconSource: "qrc:/Images/icons/article.svg"
                     title: "Статьи"
                     subtitle: "и полезные материалы"
-                    tileColor: "#5c148c"
+                    tileColor: textColor
                     onClicked: stackView.push(
                                    "qrc:/Screens/PregnancyArticles.qml")
                     Layout.preferredWidth: (root.width - 40 - parent.columnSpacing) / 2
@@ -105,7 +108,7 @@ Item {
                     iconSource: "qrc:/Images/icons/scales.svg"
                     title: "Взвешивание"
                     subtitle: "контроль веса"
-                    tileColor: "#4a1078"
+                    tileColor: textColor
                     onClicked: stackView.push("qrc:/Screens/WeightTracking.qml")
                     Layout.preferredWidth: (root.width - 40 - parent.columnSpacing) / 2
                     Layout.preferredHeight: Layout.preferredWidth * 1.2
@@ -115,7 +118,7 @@ Item {
                     iconSource: "qrc:/Images/icons/counter.svg"
                     title: "Счетчик"
                     subtitle: "толчков малыша"
-                    tileColor: "#38006b"
+                    tileColor: textColor
                     onClicked: stackView.push("qrc:/Screens/KickCounter.qml")
                     Layout.preferredWidth: (root.width - 40 - parent.columnSpacing) / 2
                     Layout.preferredHeight: Layout.preferredWidth * 1.2

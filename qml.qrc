@@ -52,5 +52,22 @@
         <file>Images/icons/dumbbell.svg</file>
         <file>Images/icons/idea.svg</file>
         <file>Images/icons/scales.svg</file>
+        <file>components/CustomDatePicker.qml</file>
+        <file>components/DatePicker.qml</file>
+        <file>Screens/PregnancyChecklist.qml</file>
+        <file>Screens/PregnancyExercises.qml</file>
+        <file>Screens/PregnancyTips.qml</file>
+        <file>Screens/PregnancyArticles.qml</file>
+        <file>Screens/WeightTracking.qml</file>
+        <file>Screens/KickCounter.qml</file>
+        <file>components/ChecklistItem.qml</file>
+        <file>components/ChecklistSection.qml</file>
+        <file>Images/icons/arrow_back.svg</file>
+        <file>components/KegelExercises/KegelDayProgram.qml</file>
+        <file>components/KegelExercises/KegelHeader.qml</file>
+        <file>components/KegelExercises/KegelProgressBar.qml</file>
+        <file>components/KegelExercises/KegelTimer.qml</file>
+        <file>components/Card.qml</file>
+        <file>components/Tag.qml</file>
     </qresource>
 </RCC>
