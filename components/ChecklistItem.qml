@@ -1,52 +1,119 @@
-// components/ChecklistItem.qml
-import QtQuick 2.15
-import QtQuick.Controls 2.15
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Controls.Material.impl
+import QtQuick.Layouts
+import QtQuick.Effects
 
-CheckBox {
+Rectangle {
     id: root
+    property string text: ""
+    property bool checked: false
+    property color indicatorColor: "#9c27b0"
 
-    // Публичные свойства
-    property color indicatorColor: "#ba68c8"
-    property color textColor: "#4a148c"
-    property color backgroundColor: "white"
-    property int borderRadius: 8
+    height: 56
+    radius: 12
+    color: "white"
+    clip: true
 
-    // Стилизация
-    padding: 12
-    spacing: 15
-    font.pixelSize: 16
+    // Сигнал для изменения состояния
+    signal toggled(bool checked)
 
-    indicator: Rectangle {
-        implicitWidth: 26
-        implicitHeight: 26
-        x: root.leftPadding
-        y: parent.height / 2 - height / 2
-        radius: 5
-        border.color: root.down ? "#9c27b0" : "#9c27b0"
-        border.width: 2
+    // Внешний MouseArea для всей области
+    MouseArea {
+        anchors.fill: parent
+        onClicked: {
+            root.checked = !root.checked
+            root.toggled(root.checked)
+        }
 
-        Rectangle {
-            width: 14
-            height: 14
-            x: 6
-            y: 6
-            radius: 3
-            color: root.checked ? root.indicatorColor : "transparent"
-            visible: root.checked
+        // Основное содержимое
+        RowLayout {
+            id: content
+            anchors.fill: parent
+            anchors.leftMargin: 16
+            anchors.rightMargin: 16
+            spacing: 16
+
+            // Кастомный чекбокс
+            Rectangle {
+                id: checkbox
+                width: 24
+                height: 24
+                radius: 4
+                border.width: 2
+                border.color: root.checked ? root.indicatorColor : "#e0e0e0"
+                color: root.checked ? root.indicatorColor : "transparent"
+
+                // Галочка
+                Text {
+                    anchors.centerIn: parent
+                    text: "✓"
+                    color: "white"
+                    font.pixelSize: 14
+                    visible: root.checked
+                    opacity: root.checked ? 1 : 0
+                    Behavior on opacity {
+                        NumberAnimation {
+                            duration: 100
+                        }
+                    }
+                }
+            }
+
+            // Текст задачи
+            Text {
+                id: taskText
+                text: root.text
+                Layout.fillWidth: true
+                font.pixelSize: 16
+                font.family: "Roboto"
+                color: root.checked ? "#666" : "#333"
+                wrapMode: Text.WordWrap
+
+                // Линия перечеркивания
+                Rectangle {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: root.checked ? parent.width : 0
+                    height: 2
+                    color: root.indicatorColor
+                    Behavior on width {
+                        NumberAnimation {
+                            duration: 200
+                        }
+                    }
+                }
+            }
         }
     }
 
-    contentItem: Text {
-        text: root.text
-        font: root.font
-        color: root.textColor
-        verticalAlignment: Text.AlignVCenter
-        leftPadding: root.indicator.width + root.spacing
-        wrapMode: Text.WordWrap
+    // Анимация при нажатии
+    SequentialAnimation {
+        id: clickAnim
+        PropertyAction {
+            target: root
+            property: "scale"
+            value: 0.98
+        }
+        PropertyAction {
+            target: content
+            property: "x"
+            value: 8
+        }
+        PauseAnimation {
+            duration: 200
+        }
+        PropertyAction {
+            target: root
+            property: "scale"
+            value: 1
+        }
+        PropertyAction {
+            target: content
+            property: "x"
+            value: 0
+        }
     }
 
-    background: Rectangle {
-        color: root.backgroundColor
-        radius: root.borderRadius
-    }
+    // Запуск анимации при изменении состояния
+    onCheckedChanged: clickAnim.start()
 }

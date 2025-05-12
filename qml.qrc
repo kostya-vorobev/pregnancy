@@ -69,5 +69,15 @@
         <file>components/KegelExercises/KegelTimer.qml</file>
         <file>components/Card.qml</file>
         <file>components/Tag.qml</file>
+        <file>components/WeightDialog.qml</file>
+        <file>components/WeightChartCard.qml</file>
+        <file>components/WeightDataTable.qml</file>
+        <file>Images/icons/check.svg</file>
+        <file>Images/icons/nutrition.svg</file>
+        <file>Screens/Nutrition.qml</file>
+        <file>components/DietCard.qml</file>
+        <file>components/InfoCard.qml</file>
+        <file>components/FoodTable.qml</file>
+        <file>components/SectionHeader.qml</file>
     </qresource>
 </RCC>

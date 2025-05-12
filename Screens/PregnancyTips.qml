@@ -1,81 +1,72 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import "../components" as MyComponents
+import QtQuick.Controls.Material
 
 Page {
     id: root
 
+    // Модель данных
     property var tips: [{
-            "question": "Какие витамины нужно принимать?",
-            "answer": "В первом триместре обязательна фолиевая кислота (400 мкг/день). По назначению врача - йод, железо, витамин D и другие. Избегайте избытка витамина А.",
-            "tags": ["витамины", "питание"],
+            "question": "Какие витамины нужны?",
+            "answer": "Фолиевая кислота (400 мкг/день) в первом триместре. По назначению врача: йод, железо, витамин D.",
+            "tags": ["витамины", "здоровье"],
             "icon": "💊"
         }, {
             "question": "Можно ли заниматься спортом?",
-            "answer": "Да, но с умеренной интенсивностью. Рекомендуются:\n• Йога для беременных\n• Плавание\n• Ходьба\nИзбегайте травмоопасных видов спорта.",
-            "tags": ["спорт", "активность"],
+            "answer": "Да! Рекомендуется:\n• Йога для беременных\n• Плавание\n• Пешие прогулки\nИзбегайте экстремальных видов спорта.",
+            "tags": ["активность", "спорт"],
             "icon": "🏃‍♀️"
         }, {
-            "question": "Как бороться с токсикозом?",
-            "answer": "Эффективные методы:\n1. Ешьте маленькими порциями\n2. Пейте имбирный чай\n3. Избегайте резких запахов\nПри сильном токсикозе обратитесь к врачу.",
-            "tags": ["здоровье", "токсикоз"],
+            "question": "Как справляться с токсикозом?",
+            "answer": "1. Дробное питание\n2. Имбирный чай\n3. Избегайте резких запахов\nПри сильных симптомах - к врачу.",
+            "tags": ["токсикоз", "питание"],
             "icon": "🤢"
-        }, {
-            "question": "Когда начинать готовиться к родам?",
-            "answer": "Рекомендуемый график:\n- Курсы для беременных (с 20 недели)\n- Сбор сумки в роддом (к 36 неделе)\n- Выбор роддома (к 30 неделе)",
-            "tags": ["роды", "подготовка"],
-            "icon": "👶"
-        }, {
-            "question": "Какой режим сна оптимален?",
-            "answer": "Советы:\n• Спать 8-10 часов ночью\n• Дневной отдых 1-2 часа\n• После 20 недель спать на боку\n• Использовать подушки для удобства",
-            "tags": ["сон", "режим"],
-            "icon": "😴"
         }]
 
-    property var dailyTip: tips[new Date().getDay() % tips.length]
+    property var dailyTip: tips[Math.floor(Math.random() * tips.length)]
     property string searchText: ""
 
+    // Функция фильтрации
     function filteredTips() {
-        if (searchText === "")
+        if (!searchText)
             return tips
-        return tips.filter(
-                    tip => tip.question.toLowerCase().includes(
-                        searchText.toLowerCase())
-                    || tip.answer.toLowerCase().includes(
-                        searchText.toLowerCase())
-                    || tip.tags.some(tag => tag.toLowerCase(
-                                         ).includes(searchText.toLowerCase())))
+        const query = searchText.toLowerCase()
+        return tips.filter(tip => tip.question.toLowerCase().includes(query)
+                           || tip.answer.toLowerCase().includes(query)
+                           || tip.tags.some(tag => tag.toLowerCase(
+                                                ).includes(query)))
     }
 
+    // Фон страницы
     background: Rectangle {
         gradient: Gradient {
             GradientStop {
                 position: 0.0
-                color: "#faf4ff"
+                color: "#f3e5f5"
             }
             GradientStop {
                 position: 1.0
-                color: "#eedfff"
+                color: "#e1bee7"
             }
         }
     }
 
+    property color primaryColor: "#9c27b0"
+    property color secondaryColor: "#e1bee7"
+
     header: ToolBar {
+        Material.foreground: "white"
         background: Rectangle {
-            color: "#9c27b0"
+            color: root.primaryColor
         }
 
         RowLayout {
             anchors.fill: parent
-            spacing: 10
-
             ToolButton {
-                icon.source: "qrc:/images/arrow_back.svg"
-                icon.color: "white"
+                icon.source: "qrc:/Images/icons/arrow_back.svg"
                 onClicked: stackView.pop()
             }
-
             Label {
                 text: "Советы для беременных"
                 font {
@@ -83,58 +74,69 @@ Page {
                     pixelSize: 20
                     bold: true
                 }
-                color: "white"
                 Layout.fillWidth: true
-                horizontalAlignment: Text.AlignHCenter
             }
         }
     }
-
+    // Основное содержимое
     ColumnLayout {
         anchors.fill: parent
-        spacing: 20
+        spacing: 15
 
-        // Поисковая строка
-        MyComponents.Card {
+        // Поиск
+        Rectangle {
+            id: searchRect
+            anchors.top: toolBarTop.bottom
+            anchors.margins: 10
             Layout.fillWidth: true
-            Layout.preferredHeight: 50
+            height: 50
+            radius: 25
+            color: "white"
+            border.color: "#d1c4e9"
+            border.width: 2
 
             RowLayout {
                 anchors.fill: parent
-                anchors.margins: 12
+                anchors.leftMargin: 15
+                anchors.rightMargin: 15
                 spacing: 10
 
                 Text {
                     text: "🔍"
                     font.pixelSize: 20
-                    Layout.alignment: Qt.AlignVCenter
                 }
 
                 TextField {
                     id: searchField
                     Layout.fillWidth: true
                     placeholderText: "Поиск советов..."
-                    font.pixelSize: 14
-                    background: Item {}
                     onTextChanged: searchText = text
-                    Layout.alignment: Qt.AlignVCenter
+                    background: Item {}
                 }
             }
         }
 
         // Совет дня
-        MyComponents.Card {
+        Rectangle {
+            id: daylyTipsRect
+            anchors.top: searchRect.bottom
+            anchors.margins: 10
             Layout.fillWidth: true
-            Layout.preferredHeight: dailyTipColumn.implicitHeight + 24
+            radius: 12
+            height: daylyTipsContainer.height
+            color: "white"
+            border.color: "#e1bee7"
+            border.width: 1
 
-            ColumnLayout {
-                id: dailyTipColumn
+            Column {
+                id: daylyTipsContainer
                 width: parent.width
+                padding: 15
                 spacing: 10
-                anchors.margins: 12
 
-                RowLayout {
+                Row {
                     spacing: 15
+                    width: parent.width
 
                     Text {
                         text: dailyTip.icon
@@ -143,159 +145,135 @@ Page {
 
                     Text {
                         text: "Совет дня"
-                        font {
-                            pixelSize: 18
-                            bold: true
-                            family: "Comfortaa"
-                        }
+                        font.bold: true
                         color: "#7b1fa2"
                     }
                 }
 
                 Text {
+                    width: parent.width - 20
                     text: dailyTip.question
-                    font {
-                        pixelSize: 16
-                        bold: true
-                    }
-                    color: "#4a148c"
+                    font.bold: true
                     wrapMode: Text.WordWrap
-                    Layout.fillWidth: true
                 }
 
                 Text {
+                    width: parent.width
                     text: dailyTip.answer
-                    font.pixelSize: 14
-                    color: "#4a148c"
                     wrapMode: Text.WordWrap
-                    Layout.fillWidth: true
-                    Layout.topMargin: 5
                 }
 
                 Flow {
+                    width: parent.width
                     spacing: 8
-                    Layout.fillWidth: true
-                    Layout.topMargin: 10
+                    padding: 5
 
                     Repeater {
                         model: dailyTip.tags
-                        delegate: MyComponents.Tag {
-                            text: "#" + modelData
-                            backgroundColor: "#e1bee7"
-                            textColor: "#7b1fa2"
-                            Layout.alignment: Qt.AlignLeft
+                        delegate: Rectangle {
+                            height: 25
+                            radius: 12
+                            color: "#e1bee7"
+                            width: tagText.width + 20
+
+                            Text {
+                                id: tagText
+                                text: "#" + modelData
+                                anchors.centerIn: parent
+                                color: "#7b1fa2"
+                                font.pixelSize: 12
+                            }
                         }
                     }
                 }
             }
         }
-
-        // Разделитель
-        Rectangle {
-            Layout.fillWidth: true
-            height: 1
-            color: "#d1c4e9"
-            opacity: 0.5
-        }
-
-        // Частые вопросы
-        Text {
-            text: "Частые вопросы"
-            font {
-                pixelSize: 18
-                bold: true
-                family: "Comfortaa"
-            }
-            color: "#7b1fa2"
-            Layout.leftMargin: 5
-        }
-
-        // Список вопросов
         ListView {
-            id: questionsList
+            id: listView
+            anchors.margins: 10
+            anchors.top: daylyTipsRect.bottom
             Layout.fillWidth: true
-            Layout.fillHeight: true
+            height: 1000
             clip: true
             spacing: 15
             model: filteredTips()
 
-            delegate: MyComponents.Card {
-                width: questionsList.width
-                height: questionColumn.implicitHeight
-                        + (expanded ? answerColumn.implicitHeight : 0) + 24
+            delegate: Rectangle {
+                width: listView.width - 20 // Добавляем небольшой отступ по бокам
+                height: expanded ? question.height + answer.height + tags.height
+                                   + 60 : question.height + 50
+                anchors.horizontalCenter: parent.horizontalCenter // Центрируем элемент
+                radius: 12
+                color: "white"
+                border.color: "#e1bee7"
+                border.width: 1
+
+                property bool expanded: false
 
                 Column {
-                    id: questionColumn
                     width: parent.width
-                    padding: 12
-                    spacing: 5
+                    padding: 15
+                    spacing: 10
 
+                    // Вопрос
                     Row {
-                        width: parent.width - 24
+                        width: parent.width
                         spacing: 15
 
                         Text {
                             text: modelData.icon
-                            font.pixelSize: 28
+                            font.pixelSize: 24
                         }
 
                         Text {
-                            width: parent.width - 100
+                            id: question
+                            width: parent.width - 70
                             text: modelData.question
-                            font {
-                                pixelSize: 16
-                                bold: true
-                            }
-                            color: "#4a148c"
+                            font.bold: true
                             wrapMode: Text.WordWrap
+                            maximumLineCount: expanded ? 0 : 2
                             elide: Text.ElideRight
-                            maximumLineCount: 2
-                        }
-
-                        Text {
-                            text: expanded ? "▲" : "▼"
-                            font.pixelSize: 16
-                            opacity: 0.6
                         }
                     }
-                }
 
-                Column {
-                    id: answerColumn
-                    width: parent.width
-                    padding: 12
-
-                    spacing: 10
-                    visible: expanded
-
+                    // Ответ
                     Text {
-                        width: parent.width - 24
+                        id: answer
+                        width: parent.width - 20
                         text: modelData.answer
-                        font.pixelSize: 14
-                        color: "#4a148c"
+                        visible: expanded
                         wrapMode: Text.WordWrap
                     }
 
-                    Flow {
+                    // Теги
+                    Row {
+                        id: tags
                         width: parent.width
                         spacing: 8
+                        visible: expanded
 
                         Repeater {
                             model: modelData.tags
-                            delegate: MyComponents.Tag {
-                                text: "#" + modelData
-                                backgroundColor: "#f3e5f5"
-                                textColor: "#7b1fa2"
+                            delegate: Rectangle {
+                                height: 25
+                                radius: 12
+                                color: "#f3e5f5"
+                                width: tagText1.width + 20
+
+                                Text {
+                                    id: tagText1
+                                    text: "#" + modelData
+                                    anchors.centerIn: parent
+                                    color: "#7b1fa2"
+                                    font.pixelSize: 12
+                                }
                             }
                         }
                     }
                 }
 
-                property bool expanded: false
-
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: parent.expanded = !parent.expanded
+                TapHandler {
+                    onTapped: parent.expanded = !parent.expanded
                 }
             }
         }

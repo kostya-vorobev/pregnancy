@@ -1,80 +1,267 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Effects
+import QtQml.Models
+import Qt5Compat.GraphicalEffects
+import QtQuick.Controls.Material
+import "../components" as MyComponents
 
 Page {
+    id: root
+    padding: 20
+
+    property int kickCount: 0
+    property ListModel kickHistory: ListModel {}
+    property string lastKickTime: ""
+
     background: Rectangle {
-        gradient: Gradient {
-            GradientStop {
-                position: 0.0
-                color: "#f3e5f5"
+        color: "#faf4ff"
+    }
+
+    // Функция для добавления записи в историю
+    function addHistoryEntry(saved) {
+        var currentDate = new Date()
+        kickHistory.insert(0, {
+                               "time": currentDate.toLocaleTimeString(
+                                           Qt.locale(), "hh:mm"),
+                               "date": currentDate.toLocaleDateString(
+                                           Qt.locale(), Locale.ShortFormat),
+                               "count": kickCount,
+                               "saved": saved || false
+                           })
+
+        // Ограничиваем историю 50 записями
+        if (kickHistory.count > 50) {
+            kickHistory.remove(50)
+        }
+    }
+    property color primaryColor: "#9c27b0"
+    property color secondaryColor: "#e1bee7"
+
+    header: ToolBar {
+        Material.foreground: "white"
+        background: Rectangle {
+            color: root.primaryColor
+        }
+
+        RowLayout {
+            anchors.fill: parent
+            ToolButton {
+                icon.source: "qrc:/Images/icons/arrow_back.svg"
+                onClicked: stackView.pop()
             }
-            GradientStop {
-                position: 1.0
-                color: "#e1bee7"
+            Label {
+                text: "Толчки малыша"
+                font {
+                    family: "Comfortaa"
+                    pixelSize: 20
+                    bold: true
+                }
+                Layout.fillWidth: true
             }
         }
     }
 
     ColumnLayout {
         anchors.fill: parent
-        spacing: 20
+        spacing: 24
 
-        Text {
-            text: "Счетчик толчков малыша"
-            font {
-                family: "Comfortaa"
-                pixelSize: 22
-                bold: true
-            }
-            color: "#9c27b0"
-            Layout.alignment: Qt.AlignHCenter
-        }
-
-        Text {
-            text: "Количество толчков: " + kickCount
-            font.pixelSize: 18
-            Layout.alignment: Qt.AlignHCenter
-        }
-
+        // Основной счетчик
         Rectangle {
-            id: counterCircle
-            width: 150
-            height: 150
-            radius: width / 2
-            color: mouseArea.pressed ? "#d1c4e9" : "#b39ddb"
-            border.color: "#9c27b0"
-            border.width: 3
             Layout.alignment: Qt.AlignHCenter
+            Layout.topMargin: 16
+            width: 200
+            height: 200
+            radius: width / 2
+            color: "#f3e5f5"
+            border.color: "#ba68c8"
+            border.width: 4
 
-            Text {
-                text: "Нажмите"
+            layer.enabled: true
+            layer.effect: MultiEffect {
+                shadowEnabled: true
+                shadowColor: "#40000000"
+                shadowVerticalOffset: 4
+                shadowBlur: 8
+            }
+
+            Column {
                 anchors.centerIn: parent
-                font.pixelSize: 16
+                spacing: 4
+
+                Text {
+                    text: "Толчков"
+                    font {
+                        pixelSize: 16
+                        family: "Comfortaa"
+                    }
+                    color: "#7b1fa2"
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
+
+                Text {
+                    text: root.kickCount
+                    font {
+                        pixelSize: 48
+                        bold: true
+                        family: "Comfortaa"
+                    }
+                    color: "#9c27b0"
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
+
+                Text {
+                    visible: root.lastKickTime !== ""
+                    text: "Последний: " + root.lastKickTime
+                    font.pixelSize: 12
+                    color: "#ab47bc"
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
             }
 
             MouseArea {
-                id: mouseArea
                 anchors.fill: parent
-                onClicked: kickCount++
+                onClicked: {
+                    root.kickCount++
+                    root.lastKickTime = new Date().toLocaleTimeString(
+                                Qt.locale(), "hh:mm")
+                }
             }
         }
 
-        Button {
-            text: "Сбросить счетчик"
+        // Кнопки управления
+        RowLayout {
             Layout.alignment: Qt.AlignHCenter
-            onClicked: kickCount = 0
+            spacing: 16
+
+            MyComponents.CustomButton {
+                id: resetButton
+                text: "Сбросить"
+                Layout.preferredWidth: 120
+                Layout.preferredHeight: 48
+
+                onClicked: {
+                    root.kickCount = 0
+                    root.lastKickTime = ""
+                }
+            }
+
+            MyComponents.CustomButton {
+                id: saveButton
+                text: "Сохранить"
+                Layout.preferredWidth: 120
+                Layout.preferredHeight: 48
+
+                onClicked: {
+                    if (root.kickCount > 0) {
+                        root.addHistoryEntry(true)
+                        root.kickCount = 0
+                        root.lastKickTime = ""
+                    }
+                }
+            }
         }
 
-        Text {
-            text: "Рекомендуется отслеживать активность малыша 2 раза в день"
-            font.pixelSize: 12
-            color: "#666"
-            horizontalAlignment: Text.AlignHCenter
+        // История
+        ColumnLayout {
             Layout.fillWidth: true
-            wrapMode: Text.WordWrap
+            Layout.fillHeight: true
+            spacing: 8
+
+            Label {
+                text: "История наблюдений"
+                font {
+                    family: "Comfortaa"
+                    pixelSize: 18
+                    bold: true
+                }
+                color: "#7b1fa2"
+                Layout.alignment: Qt.AlignLeft
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                radius: 12
+                color: "#ffffff"
+                border.color: "#e1bee7"
+                border.width: 1
+
+                ListView {
+                    id: historyList
+                    anchors.fill: parent
+                    anchors.margins: 8
+                    clip: true
+                    model: root.kickHistory
+                    spacing: 4
+
+                    delegate: Rectangle {
+                        width: historyList.width
+                        height: 48
+                        radius: 8
+                        color: saved ? "#f3e5f5" : "#faf4ff"
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 12
+                            anchors.rightMargin: 12
+                            spacing: 16
+
+                            Column {
+                                Layout.fillWidth: true
+                                spacing: 2
+
+                                Text {
+                                    text: date + " в " + time
+                                    font {
+                                        pixelSize: 14
+                                        family: "Roboto"
+                                    }
+                                    color: "#4a148c"
+                                }
+
+                                Text {
+                                    visible: saved
+                                    text: "Сохраненный результат"
+                                    font {
+                                        pixelSize: 11
+                                        family: "Roboto"
+                                        italic: true
+                                    }
+                                    color: "#7b1fa2"
+                                }
+                            }
+
+                            Text {
+                                text: count + " толчков"
+                                font {
+                                    pixelSize: 16
+                                    family: "Comfortaa"
+                                    bold: true
+                                }
+                                color: "#9c27b0"
+                            }
+                        }
+                    }
+
+                    ScrollBar.vertical: ScrollBar {
+                        policy: ScrollBar.AsNeeded
+                    }
+                }
+            }
         }
     }
 
-    property int kickCount: 0
+    // Подсказка
+    Label {
+        anchors {
+            bottom: parent.bottom
+            horizontalCenter: parent.horizontalCenter
+            margins: 16
+        }
+        text: "Нажимайте на круг при каждом толчке малыша"
+        font.pixelSize: 12
+        color: "#ab47bc"
+    }
 }

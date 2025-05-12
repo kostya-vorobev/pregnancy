@@ -123,6 +123,16 @@ Item {
                     Layout.preferredWidth: (root.width - 40 - parent.columnSpacing) / 2
                     Layout.preferredHeight: Layout.preferredWidth * 1.2
                 }
+
+                MyComponents.MenuTile {
+                    iconSource: "qrc:/Images/icons/nutrition.svg"
+                    title: "Диеты"
+                    subtitle: "основные рационы"
+                    tileColor: textColor
+                    onClicked: stackView.push("qrc:/Screens/Nutrition.qml")
+                    Layout.preferredWidth: (root.width - 40 - parent.columnSpacing) / 2
+                    Layout.preferredHeight: Layout.preferredWidth * 1.2
+                }
             }
         }
     }
