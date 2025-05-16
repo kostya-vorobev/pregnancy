@@ -79,5 +79,20 @@
         <file>components/InfoCard.qml</file>
         <file>components/FoodTable.qml</file>
         <file>components/SectionHeader.qml</file>
+        <file>Screens/FoodInfoScreen.qml</file>
+        <file>components/CategoryFilters.qml</file>
+        <file>components/CategoryButton.qml</file>
+        <file>components/FoodCard.qml</file>
+        <file>components/StatusBadge.qml</file>
+        <file>Images/food/apple.svg</file>
+        <file>Images/food/carrot.svg</file>
+        <file>Images/food/milk.svg</file>
+        <file>database/initial_backup.sql</file>
+        <file>database/initial_backup.db</file>
+        <file>Images/equal/banana.svg</file>
+        <file>Images/equal/lemon.svg</file>
+        <file>Images/equal/peas.svg</file>
+        <file>Images/equal/poppy.svg</file>
+        <file>Images/equal/pumpkin.svg</file>
     </qresource>
 </RCC>

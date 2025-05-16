@@ -1,24 +1,38 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
-#include <QQuickStyle>
-#include <QtCharts>
-
+#include <QQmlContext>
+#include <QCoreApplication>
+#include "Classes/pregnancydata.h"
+#include "Classes/databasehandler.h"
+#include "Classes/backupmanager.h"
 int main(int argc, char *argv[])
 {
+
     QGuiApplication app(argc, argv);
 
+    // Регистрируем наши C++ классы для использования в QML
+    qmlRegisterType<PregnancyData>("PregnancyApp", 1, 0, "PregnancyData");
+    qmlRegisterType<DatabaseHandler>("PregnancyAppData", 1, 0, "DatabaseHandler");
+
+
+    // Инициализация базы данных
+    DatabaseHandler dbHandler;
+    if (!dbHandler.initializeDatabase()) {
+        qWarning() << "Failed to initialize database";
+    }
+
+    try {
+        dbHandler.scheduleBackups(24); // Каждые 24 часа
+    } catch (const std::exception &e) {
+        qCritical() << "Failed to schedule backups:" << e.what();
+    } catch (...) {
+        qCritical() << "Unknown error during backup scheduling";
+    }
+
     QQmlApplicationEngine engine;
-    const QUrl url(QStringLiteral("qrc:/untitled2/main.qml"));
-    QObject::connect(
-        &engine,
-        &QQmlApplicationEngine::objectCreated,
-        &app,
-        [url](QObject *obj, const QUrl &objUrl) {
-            if (!obj && url == objUrl)
-                QCoreApplication::exit(-1);
-        },
-        Qt::QueuedConnection);
-    engine.load(url);
+    engine.load(QUrl(QStringLiteral("qrc:/main.qml")));
+    if (engine.rootObjects().isEmpty())
+        return -1;
 
     return app.exec();
 }

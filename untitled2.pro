@@ -1,6 +1,9 @@
-QT += quick quickcontrols2 charts qml
+QT += quick quickcontrols2 charts qml sql
 
 SOURCES += \
+        Classes/backupmanager.cpp \
+        Classes/databasehandler.cpp \
+        Classes/pregnancydata.cpp \
         main.cpp
 
 resources.files = main.qml 
@@ -39,4 +42,9 @@ DISTFILES += \
     components/Footer.qml \
     components/FooterButton.qml \
     components/NoteEditor.qml
+
+HEADERS += \
+    Classes/backupmanager.h \
+    Classes/databasehandler.h \
+    Classes/pregnancydata.h
 

@@ -4,7 +4,7 @@ import "../components" as MyComponents
 
 Rectangle {
     id: footer
-    height: 40
+    height: 60
     width: parent.width
     color: "#ffffff"
     border.color: "#dddddd"

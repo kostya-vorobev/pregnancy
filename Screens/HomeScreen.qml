@@ -1,15 +1,19 @@
-import QtQuick
-import QtQuick.Controls
-import QtQuick.Layouts
+import QtQuick 2.15
+import QtQuick.Controls 2.15
+import QtQuick.Layouts 1.15
 import "../components" as MyComponents
+import PregnancyApp 1.0
 
 Item {
     id: root
     objectName: "home"
     property string source: "qrc:/Screens/HomeScreen.qml"
-    property int currentWeek: 12 // Текущая неделя беременности
-    property string babySize: "Лимон" // Сравнение размера плода
-    property string dailyTip: "Сегодня полезно прогуляться на свежем воздухе минимум 30 минут."
+
+    PregnancyData {
+        id: pregnancyData
+        // Загружаем данные для профиля с ID 1 при создании компонента
+        Component.onCompleted: loadData(1)
+    }
 
     Rectangle {
         anchors.fill: parent
@@ -40,8 +44,8 @@ Item {
                 Rectangle {
                     Layout.alignment: Qt.AlignHCenter
                     Layout.topMargin: 20
-                    width: 200
-                    height: 200
+                    Layout.fillWidth: true
+                    height: 300
                     color: "#e91e63"
                     radius: 10
                     border.color: "#9c27b0"
@@ -57,7 +61,7 @@ Item {
                     Label {
                         anchors.bottom: parent.bottom
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: "Неделя " + currentWeek
+                        text: "Неделя " + pregnancyData.currentWeek
                         color: "white"
                         font.bold: true
                         padding: 5
@@ -78,7 +82,7 @@ Item {
                     ProgressBar {
                         id: pregnancyProgress
                         Layout.fillWidth: true
-                        value: currentWeek / 40
+                        value: pregnancyData.currentWeek / 40
                         background: Rectangle {
                             radius: 3
                             color: "#e0e0e0"
@@ -102,8 +106,8 @@ Item {
                     }
 
                     Label {
-                        text: currentWeek + " из 40 недель (" + Math.round(
-                                  currentWeek / 40 * 100) + "%)"
+                        text: pregnancyData.currentWeek + " из 40 недель (" + Math.round(
+                                  pregnancyData.currentWeek / 40 * 100) + "%)"
                         color: "#4a148c"
                     }
                 }
@@ -124,8 +128,7 @@ Item {
                         Image {
                             Layout.preferredWidth: 60
                             Layout.preferredHeight: 60
-                            source: "qrc:/Images/" + babySize.toLowerCase(
-                                        ) + ".png"
+                            source: "qrc:/Images/equal/" + pregnancyData.babySizeImage + ".svg"
                             fillMode: Image.PreserveAspectFit
                         }
 
@@ -140,7 +143,7 @@ Item {
                             }
 
                             Label {
-                                text: "Как " + babySize
+                                text: "Как " + pregnancyData.babySize
                                 font.bold: true
                                 font.pixelSize: 16
                                 color: "#4a148c"
@@ -169,7 +172,7 @@ Item {
                         }
 
                         Label {
-                            text: dailyTip
+                            text: pregnancyData.dailyTip
                             wrapMode: Text.WordWrap
                             Layout.fillWidth: true
                             color: "#4a148c"
@@ -179,20 +182,12 @@ Item {
 
                 // 5. Кнопка перехода к продуктам
                 MyComponents.CustomButton {
-
                     Layout.topMargin: 10
                     width: parent.width
                     text: "Рекомендуемые продукты"
-                    onClicked: stackView.push("qrc:/Screens/FoodScreen.qml")
+                    onClicked: stackView.push("qrc:/Screens/FoodInfoScreen.qml")
                 }
             }
         }
-    }
-
-    function updateBabyInfo(week) {
-        currentWeek = week
-        // Можно добавить логику для обновления сравнения
-        var comparisons = ["Горошина", "Вишня", "Клубника", "Лимон", "Яблоко"]
-        babySize = comparisons[Math.min(week / 4, comparisons.length - 1)]
     }
 }

@@ -6,24 +6,27 @@ Rectangle {
     property alias content: contentText.text
 
     width: parent.width
-    height: contentText.implicitHeight + 40
+    height: column.implicitHeight + 20 // учитываем margins (10 сверху и снизу)
     radius: 8
     color: "#ffffff"
     border.color: "#e1bee7"
     border.width: 1
 
-    ColumnLayout {
+    Column {
+        id: column
         anchors.fill: parent
         anchors.margins: 10
         spacing: 5
 
         Text {
             id: titleText
+            width: parent.width
             font {
                 family: "Roboto"
                 pixelSize: 16
                 bold: true
             }
+            wrapMode: Text.WordWrap
             color: "#7b1fa2"
         }
 

@@ -31,12 +31,14 @@ Rectangle {
                     bold: true
                 }
                 color: "#4caf50"
+                wrapMode: Text.Wrap
             }
 
             Repeater {
                 model: recommended
                 delegate: ColumnLayout {
                     Text {
+                        Layout.fillWidth: true
                         text: modelData.category + ":"
                         font {
                             family: "Roboto"
@@ -44,14 +46,18 @@ Rectangle {
                             bold: true
                         }
                         color: "#7b1fa2"
+                        wrapMode: Text.Wrap
                     }
 
                     Repeater {
+
                         model: modelData.items
                         delegate: Text {
+                            Layout.fillWidth: true
                             text: "• " + modelData
                             font.pixelSize: 12
                             color: "#666"
+                            wrapMode: Text.Wrap
                         }
                     }
                 }
@@ -72,12 +78,14 @@ Rectangle {
                     bold: true
                 }
                 color: "#f44336"
+                wrapMode: Text.Wrap
             }
 
             Repeater {
                 model: excluded
                 delegate: ColumnLayout {
                     Text {
+                        Layout.fillWidth: true
                         text: modelData.category + ":"
                         font {
                             family: "Roboto"
@@ -85,14 +93,17 @@ Rectangle {
                             bold: true
                         }
                         color: "#7b1fa2"
+                        wrapMode: Text.Wrap
                     }
 
                     Repeater {
                         model: modelData.items
                         delegate: Text {
+                            Layout.fillWidth: true
                             text: "• " + modelData
                             font.pixelSize: 12
                             color: "#666"
+                            wrapMode: Text.Wrap
                         }
                     }
                 }

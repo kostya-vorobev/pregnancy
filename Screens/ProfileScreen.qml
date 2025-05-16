@@ -382,6 +382,40 @@ Item {
                         color: textColor
                     }
                 }
+                Column {
+                    width: parent.width
+                    spacing: 5
+
+                    Text {
+                        text: "Группа крови:"
+                        font {
+                            family: "Comfortaa"
+                            pixelSize: Math.min(16, root.width * 0.045)
+                        }
+                        color: textColor
+                    }
+
+                    MyComponents.CustomTextField {
+                        id: bloodTypeField
+                        width: parent.width
+                        placeholderText: "Введите вашу группу крови"
+                        text: "58"
+                        inputMethodHints: Qt.ImhDigitsOnly
+                        readOnly: !editMode
+                        visible: editMode
+                        opacity: editMode ? 1.0 : 0.7
+                    }
+
+                    Text {
+                        visible: !editMode
+                        text: bloodTypeField.text
+                        font {
+                            family: "Comfortaa"
+                            pixelSize: Math.min(16, root.width * 0.045)
+                        }
+                        color: textColor
+                    }
+                }
             }
 
             // Кнопки действий
