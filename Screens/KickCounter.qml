@@ -2,42 +2,76 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Effects
-import QtQml.Models
 import Qt5Compat.GraphicalEffects
 import QtQuick.Controls.Material
 import "../components" as MyComponents
+import PregnancyApp 1.0
 
 Page {
     id: root
     padding: 20
 
+    FetalKickManager {
+        id: kickManager
+        onKickHistoryChanged: {
+            console.log("Received history data:",
+                        JSON.stringify(kickManager.kickHistory))
+            internalKickHistory.clear()
+            if (kickManager.kickHistory && kickManager.kickHistory.length > 0) {
+                for (var i = 0; i < kickManager.kickHistory.length; i++) {
+                    var item = kickManager.kickHistory[i]
+                    console.log("Adding item:", JSON.stringify(item))
+                    internalKickHistory.append({
+                                                   "id": item.id || 0,
+                                                   "date": item.date || "",
+                                                   "time": item.time || "",
+                                                   "count": item.count || 0,
+                                                   "duration": item.duration
+                                                               || 0,
+                                                   "notes": item.notes || "",
+                                                   "saved": true
+                                               })
+                }
+            }
+        }
+    }
+
     property int kickCount: 0
-    property ListModel kickHistory: ListModel {}
+    property alias kickHistory: internalKickHistory
     property string lastKickTime: ""
+    property date sessionStartTime: new Date()
+    property bool isSessionActive: false
+
+    ListModel {
+        id: internalKickHistory
+    }
 
     background: Rectangle {
         color: "#faf4ff"
     }
 
-    // Функция для добавления записи в историю
-    function addHistoryEntry(saved) {
-        var currentDate = new Date()
-        kickHistory.insert(0, {
-                               "time": currentDate.toLocaleTimeString(
-                                           Qt.locale(), "hh:mm"),
-                               "date": currentDate.toLocaleDateString(
-                                           Qt.locale(), Locale.ShortFormat),
-                               "count": kickCount,
-                               "saved": saved || false
-                           })
+    function startNewSession() {
+        kickCount = 0
+        lastKickTime = ""
+        sessionStartTime = new Date()
+        isSessionActive = true
+    }
 
-        // Ограничиваем историю 50 записями
-        if (kickHistory.count > 50) {
-            kickHistory.remove(50)
+    function saveCurrentSession() {
+        if (kickCount > 0) {
+            var duration = Math.floor((new Date() - sessionStartTime) / 60000)
+            saveDialog.sessionData = {
+                "count": kickCount,
+                "duration": duration,
+                "date": sessionStartTime.toLocaleDateString(Qt.locale(),
+                                                            Locale.ShortFormat),
+                "time": sessionStartTime.toLocaleTimeString(Qt.locale(),
+                                                            "hh:mm")
+            }
+            saveDialog.open()
         }
     }
     property color primaryColor: "#9c27b0"
-    property color secondaryColor: "#e1bee7"
 
     header: ToolBar {
         Material.foreground: "white"
@@ -74,8 +108,8 @@ Page {
             width: 200
             height: 200
             radius: width / 2
-            color: "#f3e5f5"
-            border.color: "#ba68c8"
+            color: isSessionActive ? "#f3e5f5" : "#e1bee7"
+            border.color: isSessionActive ? "#ba68c8" : "#9c27b0"
             border.width: 4
 
             layer.enabled: true
@@ -91,7 +125,7 @@ Page {
                 spacing: 4
 
                 Text {
-                    text: "Толчков"
+                    text: isSessionActive ? "Толчков" : "Нажмите чтобы начать"
                     font {
                         pixelSize: 16
                         family: "Comfortaa"
@@ -123,9 +157,13 @@ Page {
             MouseArea {
                 anchors.fill: parent
                 onClicked: {
-                    root.kickCount++
-                    root.lastKickTime = new Date().toLocaleTimeString(
-                                Qt.locale(), "hh:mm")
+                    if (!isSessionActive) {
+                        startNewSession()
+                    } else {
+                        kickCount++
+                        lastKickTime = new Date().toLocaleTimeString(
+                                    Qt.locale(), "hh:mm")
+                    }
                 }
             }
         }
@@ -140,11 +178,8 @@ Page {
                 text: "Сбросить"
                 Layout.preferredWidth: 120
                 Layout.preferredHeight: 48
-
-                onClicked: {
-                    root.kickCount = 0
-                    root.lastKickTime = ""
-                }
+                enabled: isSessionActive
+                onClicked: startNewSession()
             }
 
             MyComponents.CustomButton {
@@ -152,14 +187,8 @@ Page {
                 text: "Сохранить"
                 Layout.preferredWidth: 120
                 Layout.preferredHeight: 48
-
-                onClicked: {
-                    if (root.kickCount > 0) {
-                        root.addHistoryEntry(true)
-                        root.kickCount = 0
-                        root.lastKickTime = ""
-                    }
-                }
+                enabled: isSessionActive && kickCount > 0
+                onClicked: saveCurrentSession()
             }
         }
 
@@ -193,75 +222,156 @@ Page {
                     anchors.fill: parent
                     anchors.margins: 8
                     clip: true
-                    model: root.kickHistory
+                    model: kickHistory
                     spacing: 4
+                    boundsBehavior: Flickable.StopAtBounds
+
+                    Label {
+                        anchors.centerIn: parent
+                        text: "Нет сохраненных данных"
+                        visible: kickHistory.count === 0
+                        font.pixelSize: 16
+                        color: "#9c27b0"
+                    }
 
                     delegate: Rectangle {
                         width: historyList.width
-                        height: 48
+                        height: 60
                         radius: 8
-                        color: saved ? "#f3e5f5" : "#faf4ff"
+                        color: model.saved ? "#f3e5f5" : "#faf4ff"
 
                         RowLayout {
                             anchors.fill: parent
                             anchors.leftMargin: 12
                             anchors.rightMargin: 12
-                            spacing: 16
+                            spacing: 8
 
                             Column {
                                 Layout.fillWidth: true
-                                spacing: 2
+                                spacing: 4
 
                                 Text {
-                                    text: date + " в " + time
+                                    text: model.date + " в " + model.time
                                     font {
                                         pixelSize: 14
                                         family: "Roboto"
                                     }
                                     color: "#4a148c"
+                                    width: parent.width
+                                    elide: Text.ElideRight
                                 }
 
                                 Text {
-                                    visible: saved
-                                    text: "Сохраненный результат"
+                                    visible: model.notes
+                                    text: model.notes
                                     font {
                                         pixelSize: 11
                                         family: "Roboto"
                                         italic: true
                                     }
                                     color: "#7b1fa2"
+                                    width: parent.width
+                                    elide: Text.ElideRight
+                                    maximumLineCount: 1
                                 }
                             }
 
                             Text {
-                                text: count + " толчков"
+                                text: model.count + " толчков"
                                 font {
                                     pixelSize: 16
                                     family: "Comfortaa"
                                     bold: true
                                 }
                                 color: "#9c27b0"
+                                Layout.minimumWidth: 100
+                                horizontalAlignment: Text.AlignRight
+                            }
+
+                            Button {
+                                width: 30
+                                height: 30
+                                icon.source: "qrc:/Images/icons/delete.svg"
+                                icon.color: "#e53935"
+                                flat: true
+                                onClicked: {
+                                    deleteDialog.sessionId = model.id
+                                    deleteDialog.open()
+                                }
                             }
                         }
                     }
 
                     ScrollBar.vertical: ScrollBar {
                         policy: ScrollBar.AsNeeded
+                        width: 8
                     }
                 }
+            }
+
+            // Подсказка
+            Label {
+                Layout.alignment: Qt.AlignHCenter
+                Layout.bottomMargin: 8
+                text: isSessionActive ? "Нажимайте на круг при каждом толчке малыша" : "Нажмите на круг, чтобы начать новый сеанс"
+                font.pixelSize: 12
+                color: "#ab47bc"
             }
         }
     }
 
-    // Подсказка
-    Label {
-        anchors {
-            bottom: parent.bottom
-            horizontalCenter: parent.horizontalCenter
-            margins: 16
+    // Диалог сохранения
+    Dialog {
+        id: saveDialog
+        title: "Сохранение сеанса"
+        standardButtons: Dialog.Save | Dialog.Cancel
+        modal: true
+        Layout.fillWidth: true
+        property var sessionData: ({})
+
+        ColumnLayout {
+            width: parent.width
+            spacing: 15
+
+            Label {
+                text: `Будет сохранена сессия:\n${sessionData.count} толчков за ${sessionData.duration} минут`
+                wrapMode: Text.WordWrap
+            }
+
+            TextField {
+                id: notesField
+                Layout.fillWidth: true
+                placeholderText: "Заметки (необязательно)"
+            }
         }
-        text: "Нажимайте на круг при каждом толчке малыша"
-        font.pixelSize: 12
-        color: "#ab47bc"
+
+        onAccepted: {
+            kickManager.saveKickSession(sessionData.count, notesField.text)
+            root.isSessionActive = false
+            notesField.text = ""
+        }
+    }
+
+    // Диалог удаления
+    Dialog {
+        id: deleteDialog
+        title: "Удаление записи"
+        standardButtons: Dialog.Yes | Dialog.No
+        modal: true
+        width: 300
+        property int sessionId: -1
+
+        Label {
+            width: parent.width
+            wrapMode: Text.WordWrap
+            text: "Вы действительно хотите удалить эту запись?"
+        }
+
+        onAccepted: kickManager.deleteKickSession(sessionId)
+    }
+
+    Component.onCompleted: {
+        console.log("Initializing kick counter...")
+        kickManager.loadKickHistory()
     }
 }

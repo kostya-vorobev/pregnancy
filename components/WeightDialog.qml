@@ -17,8 +17,9 @@ Popup {
     property alias weight: weightInput.text
     property alias date: dateInput.text
     property date currentDate: new Date()
+    property string note: ""
 
-    signal accepted(real weight, date date)
+    signal accepted(real weight, date date, string note)
     signal rejected
 
     enter: Transition {
@@ -69,6 +70,7 @@ Popup {
     }
 
     Rectangle {
+        id: header
         width: parent.width
         height: 60
         color: "#9c27b0"
@@ -108,7 +110,7 @@ Popup {
             id: contentLayout
             width: parent.width
             spacing: 15
-            anchors.top: parent.top
+            anchors.top: header.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.margins: 20
@@ -138,12 +140,15 @@ Popup {
                     pixelSize: 16
                 }
                 padding: 15
+                selectByMouse: true
                 background: Rectangle {
                     color: "#f3e5f5"
-                    border.color: "#9c27b0"
+                    border.color: weightInput.activeFocus ? "#7b1fa2" : "#9c27b0"
                     border.width: 1
                     radius: 10
                 }
+
+                onAccepted: addButton.clicked()
             }
 
             TextField {
@@ -157,53 +162,78 @@ Popup {
                     pixelSize: 16
                 }
                 padding: 15
+                selectByMouse: true
                 background: Rectangle {
                     color: "#f3e5f5"
-                    border.color: "#9c27b0"
+                    border.color: dateInput.activeFocus ? "#7b1fa2" : "#9c27b0"
                     border.width: 1
                     radius: 10
                 }
+
+                onAccepted: addButton.clicked()
+            }
+
+            TextField {
+                id: noteInput
+                placeholderText: "Заметка (необязательно)"
+                Layout.fillWidth: true
+                font {
+                    family: "Comfortaa"
+                    pixelSize: 16
+                }
+                padding: 15
+                selectByMouse: true
+                background: Rectangle {
+                    color: "#f3e5f5"
+                    border.color: noteInput.activeFocus ? "#7b1fa2" : "#9c27b0"
+                    border.width: 1
+                    radius: 10
+                }
+
+                onAccepted: addButton.clicked()
             }
         }
     }
 
-    Item {
+    RowLayout {
+        id: footerLayout
+        anchors.right: parent.right
         anchors.bottom: parent.bottom
-        implicitHeight: footerLayout.implicitHeight
-        width: parent.width
+        anchors.margins: 20
+        spacing: 15
 
-        RowLayout {
-            id: footerLayout
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            anchors.margins: 20
-            spacing: 15
-
-            Button {
-                text: "Отмена"
-                font.family: "Comfortaa"
-                flat: true
-                onClicked: {
-                    root.rejected()
-                    root.close()
-                }
+        Button {
+            id: cancelButton
+            text: "Отмена"
+            font.family: "Comfortaa"
+            flat: true
+            Material.foreground: "#7b1fa2"
+            onClicked: {
+                root.rejected()
+                root.close()
             }
+        }
 
-            Button {
-                text: "Добавить"
-                font.family: "Comfortaa"
-                highlighted: true
-                onClicked: {
-                    var weight = parseFloat(weightInput.text)
-                    var dateParts = dateInput.text.split('.')
-                    var date = new Date(dateParts[2], dateParts[1] - 1,
-                                        dateParts[0])
+        Button {
+            id: addButton
+            text: "Добавить"
+            font.family: "Comfortaa"
+            highlighted: true
+            Material.background: "#9c27b0"
+            Material.foreground: "white"
+            onClicked: {
+                var weight = parseFloat(weightInput.text.replace(",", "."))
+                var dateParts = dateInput.text.split('.')
+                var date = new Date(dateParts[2], dateParts[1] - 1,
+                                    dateParts[0])
 
-                    if (!isNaN(weight)) {
-                        root.accepted(weight,
-                                      isNaN(date.getTime()) ? new Date() : date)
-                        root.close()
-                    }
+                if (!isNaN(weight) && weight >= 30 && weight <= 300) {
+                    root.accepted(weight,
+                                  isNaN(date.getTime()) ? new Date() : date,
+                                  noteInput.text)
+                    root.close()
+                } else {
+                    weightInput.focus = true
                 }
             }
         }
@@ -211,6 +241,7 @@ Popup {
 
     onOpened: {
         weightInput.text = ""
+        noteInput.text = ""
         dateInput.text = Qt.formatDateTime(currentDate, "dd.MM.yyyy")
         weightInput.forceActiveFocus()
     }

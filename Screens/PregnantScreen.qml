@@ -1,8 +1,8 @@
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Effects
+import QtQuick.Layouts
 import "../components" as MyComponents
-import PregnancyAppData 1.0
+import PregnancyApp 1.0
 
 Item {
     id: root
@@ -10,52 +10,67 @@ Item {
     width: parent.width
     visible: true
 
-    property color primaryColor: "#9c27b0"
+    property int profileId: 1
     property color textColor: "#4a148c"
-    property real defaultRadius: 14
-    property int currentWeek: 1
-    property int currentProfileId: 1
-    property var weekInfo: ({})
-    property bool dbReady: false
+    property color primaryColor: "#9c27b0"
 
-    DatabaseHandler {
-        id: dbHandler
-        Component.onCompleted: {
-            dbHandler.initializeDatabase()
-            dbReady = dbHandler.isInitialized()
-            if (dbReady) {
-                currentWeek = dbHandler.getCurrentWeek(currentProfileId)
-                loadWeekData()
-            }
+    // Данные пользователя
+    property Profile userProfile: Profile {
+        id: profileData
+        onDataLoaded: {
+            console.log("Данные профиля загружены")
+            pregnancyProgress.loadData()
         }
     }
 
-    function loadWeekData() {
-        weekInfo = dbHandler.getWeekInfo(currentWeek)
-    }
+    // Данные о беременности
+    PregnancyProgress {
+        id: pregnancyProgress
+        profileId: profileData.id
 
-    function saveCurrentWeek() {
-        if (dbReady) {
-            console.log("Saving week:", currentWeek)
-            var success = dbHandler.savePregnancyData(currentProfileId,
-                                                      currentWeek)
-            console.log("Save result:", success)
+        onDataLoaded: {
+            console.log("Данные недели беременности загружены")
+            updateUI()
+        }
 
-            // Проверяем, что данные сохранились
-            var savedWeek = dbHandler.getCurrentWeek(currentProfileId)
-            console.log("Saved week in DB:", savedWeek)
-        } else {
-            console.error("Database not ready")
+        onCurrentWeekChanged: {
+            weekInfo.weekNumber = currentWeek
+            updateUI()
         }
     }
 
-    Connections {
-        target: weekComboBox
-        function onActivated(index) {
-            currentWeek = index + 1
-            loadWeekData()
-            saveCurrentWeek()
+    PregnancyWeek {
+        id: weekInfo
+        weekNumber: pregnancyProgress.currentWeek
+    }
+
+    function updateUI() {
+        // Обновляем ComboBox при загрузке данных
+        weekComboBox.currentIndex = pregnancyProgress.currentWeek
+                > 0 ? pregnancyProgress.currentWeek - 1 : 0
+        weekInfo.weekNumber = pregnancyProgress.currentWeek > 0 ? pregnancyProgress.currentWeek : 1
+        updateWeekInfo(weekInfo.weekNumber)
+    }
+
+    function updateWeekInfo(week) {
+        currentWeekText.text = "На " + week + " неделе:"
+        babySizeText.text = "● Размер: " + (weekInfo.babySize || "неизвестно")
+        babyLengthText.text = "● Длина: " + (weekInfo.babyLength || "0") + " см"
+        babyWeightText.text = "● Вес: " + (weekInfo.babyWeight || "0") + " г"
+        developmentDescriptionText.text = weekInfo.developmentDescription
+                || "Описание недоступно"
+    }
+
+    function saveProgress() {
+        // Обновляем текущую неделю из ComboBox
+        pregnancyProgress.currentWeek = weekComboBox.currentIndex + 1
+
+        if (pregnancyProgress.save()) {
+            console.log("Данные беременности сохранены")
+            return true
         }
+        console.log("Ошибка сохранения данных беременности")
+        return false
     }
 
     Rectangle {
@@ -77,7 +92,6 @@ Item {
             contentWidth: contentColumn.width
             contentHeight: contentColumn.height
             clip: true
-            boundsBehavior: Flickable.StopAtBounds
 
             Column {
                 id: contentColumn
@@ -117,8 +131,13 @@ Item {
                         model: Array.from({
                                               "length": 42
                                           }, (_, i) => `${i + 1} неделя`)
-                        currentIndex: currentWeek - 1
                         fontSize: Math.min(16, root.width * 0.045)
+                        onCurrentIndexChanged: {
+                            // Обновляем информацию сразу при изменении выбора
+                            var selectedWeek = currentIndex + 1
+                            weekInfo.weekNumber = selectedWeek
+                            updateWeekInfo(selectedWeek)
+                        }
                     }
                 }
 
@@ -141,7 +160,8 @@ Item {
                         }
 
                         Text {
-                            text: "На " + currentWeek + " неделе:"
+                            id: currentWeekText
+                            text: "На " + pregnancyProgress.currentWeek + " неделе:"
                             font {
                                 family: "Comfortaa"
                                 pixelSize: Math.min(16, root.width * 0.045)
@@ -152,6 +172,7 @@ Item {
                         }
 
                         Text {
+                            id: babySizeText
                             text: "● Размер: " + (weekInfo.babySize
                                                   || "неизвестно")
                             font {
@@ -163,6 +184,7 @@ Item {
                         }
 
                         Text {
+                            id: babyLengthText
                             text: "● Длина: " + (weekInfo.babyLength
                                                  || "0") + " см"
                             font {
@@ -174,6 +196,7 @@ Item {
                         }
 
                         Text {
+                            id: babyWeightText
                             text: "● Вес: " + (weekInfo.babyWeight
                                                || "0") + " г"
                             font {
@@ -185,7 +208,9 @@ Item {
                         }
 
                         Text {
-                            text: weekInfo.description || "Описание недоступно"
+                            id: developmentDescriptionText
+                            text: weekInfo.developmentDescription
+                                  || "Описание недоступно"
                             font {
                                 family: "Comfortaa"
                                 pixelSize: Math.min(14, root.width * 0.04)
@@ -203,8 +228,12 @@ Item {
                     text: "Подтвердить"
                     fontSize: Math.min(16, root.width * 0.045)
                     onClicked: {
-                        saveCurrentWeek()
-                        stackView.push("qrc:/Screens/PersonalDataScreen.qml")
+                        if (saveProgress()) {
+                            if (typeof stackView !== 'undefined') {
+                                stackView.push(
+                                            "qrc:/Screens/PersonalDataScreen.qml")
+                            }
+                        }
                     }
                 }
 
@@ -214,27 +243,15 @@ Item {
                     text: "Назад"
                     buttonColor: "#e0e0e0"
                     textColor: root.textColor
-                    fontSize: Math.min(16, root.width * 0.045)
-                    onClicked: {
-                        saveCurrentWeek()
-                        if (typeof stackView !== 'undefined')
-                            stackView.pop()
-                    }
+                    onClicked: stackView.pop()
                 }
             }
         }
     }
 
     Component.onCompleted: {
-        console.log("Размеры экрана:", Screen.width, "x", Screen.height)
-        console.log("Размеры окна:", width, "x", height)
-
-        // Инициализация базы данных и загрузка данных
-        dbReady = dbHandler.initializeDatabase()
-        if (dbReady) {
-            currentWeek = dbHandler.getCurrentWeek(currentProfileId)
-            weekComboBox.currentIndex = currentWeek - 1
-            loadWeekData()
-        }
+        // Загружаем данные профиля при создании компонента
+        profileData.id = profileId
+        profileData.loadData()
     }
 }

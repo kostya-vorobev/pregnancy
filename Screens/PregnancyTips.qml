@@ -2,43 +2,56 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Controls.Material
+import "../components" as MyComponents
+import PregnancyApp 1.0
 
 Page {
     id: root
 
-    // Модель данных
-    property var tips: [{
-            "question": "Какие витамины нужны?",
-            "answer": "Фолиевая кислота (400 мкг/день) в первом триместре. По назначению врача: йод, железо, витамин D.",
-            "tags": ["витамины", "здоровье"],
-            "icon": "💊"
-        }, {
-            "question": "Можно ли заниматься спортом?",
-            "answer": "Да! Рекомендуется:\n• Йога для беременных\n• Плавание\n• Пешие прогулки\nИзбегайте экстремальных видов спорта.",
-            "tags": ["активность", "спорт"],
-            "icon": "🏃‍♀️"
-        }, {
-            "question": "Как справляться с токсикозом?",
-            "answer": "1. Дробное питание\n2. Имбирный чай\n3. Избегайте резких запахов\nПри сильных симптомах - к врачу.",
-            "tags": ["токсикоз", "питание"],
-            "icon": "🤢"
-        }]
-
-    property var dailyTip: tips[Math.floor(Math.random() * tips.length)]
-    property string searchText: ""
-
-    // Функция фильтрации
-    function filteredTips() {
-        if (!searchText)
-            return tips
-        const query = searchText.toLowerCase()
-        return tips.filter(tip => tip.question.toLowerCase().includes(query)
-                           || tip.answer.toLowerCase().includes(query)
-                           || tip.tags.some(tag => tag.toLowerCase(
-                                                ).includes(query)))
+    TipManager {
+        id: tipManager
+        onTipsChanged: updateFilteredTips()
+        onDailyTipChanged: updateDailyTipUI()
     }
 
-    // Фон страницы
+    property string searchText: ""
+
+    function updateFilteredTips() {
+        if (!searchText) {
+            listView.model = tipManager.tips
+            return
+        }
+
+        const query = searchText.toLowerCase()
+        var filtered = []
+        for (var i = 0; i < tipManager.tips.length; i++) {
+            var tip = tipManager.tips[i]
+            var matches = tip.question.toLowerCase().includes(query)
+                    || tip.answer.toLowerCase().includes(query)
+
+            if (!matches) {
+                // Проверяем теги
+                for (var j = 0; j < tip.tags.length; j++) {
+                    if (tip.tags[j].toLowerCase().includes(query)) {
+                        matches = true
+                        break
+                    }
+                }
+            }
+
+            if (matches) {
+                filtered.push(tip)
+            }
+        }
+        listView.model = filtered
+    }
+
+    function updateDailyTipUI() {
+        dailyTipData = tipManager.dailyTip
+    }
+
+    property var dailyTipData: ({})
+
     background: Rectangle {
         gradient: Gradient {
             GradientStop {
@@ -78,7 +91,7 @@ Page {
             }
         }
     }
-    // Основное содержимое
+
     ColumnLayout {
         anchors.fill: parent
         spacing: 15
@@ -86,9 +99,8 @@ Page {
         // Поиск
         Rectangle {
             id: searchRect
-            anchors.top: toolBarTop.bottom
-            anchors.margins: 10
             Layout.fillWidth: true
+            Layout.topMargin: 10
             height: 50
             radius: 25
             color: "white"
@@ -110,7 +122,10 @@ Page {
                     id: searchField
                     Layout.fillWidth: true
                     placeholderText: "Поиск советов..."
-                    onTextChanged: searchText = text
+                    onTextChanged: {
+                        searchText = text
+                        updateFilteredTips()
+                    }
                     background: Item {}
                 }
             }
@@ -118,19 +133,20 @@ Page {
 
         // Совет дня
         Rectangle {
-            id: daylyTipsRect
-            anchors.top: searchRect.bottom
-            anchors.margins: 10
+            id: dailyTipRect
             Layout.fillWidth: true
+            Layout.leftMargin: 10
+            Layout.rightMargin: 10
             radius: 12
-            height: daylyTipsContainer.height
+            height: dailyTipContainer.height
             color: "white"
             border.color: "#e1bee7"
             border.width: 1
 
             Column {
-                id: daylyTipsContainer
+                id: dailyTipContainer
                 width: parent.width
+                height: 200
                 padding: 15
                 spacing: 10
 
@@ -139,7 +155,7 @@ Page {
                     width: parent.width
 
                     Text {
-                        text: dailyTip.icon
+                        text: dailyTipData.icon || "💡"
                         font.pixelSize: 28
                     }
 
@@ -152,14 +168,14 @@ Page {
 
                 Text {
                     width: parent.width - 20
-                    text: dailyTip.question
+                    text: dailyTipData.question || "Загрузка..."
                     font.bold: true
                     wrapMode: Text.WordWrap
                 }
 
                 Text {
                     width: parent.width
-                    text: dailyTip.answer
+                    text: dailyTipData.answer || ""
                     wrapMode: Text.WordWrap
                 }
 
@@ -169,7 +185,7 @@ Page {
                     padding: 5
 
                     Repeater {
-                        model: dailyTip.tags
+                        model: dailyTipData.tags || []
                         delegate: Rectangle {
                             height: 25
                             radius: 12
@@ -188,21 +204,22 @@ Page {
                 }
             }
         }
+
+        // Список советов
         ListView {
             id: listView
-            anchors.margins: 10
-            anchors.top: daylyTipsRect.bottom
             Layout.fillWidth: true
-            height: 1000
+            Layout.fillHeight: true
+            Layout.leftMargin: 10
+            Layout.rightMargin: 10
             clip: true
             spacing: 15
-            model: filteredTips()
+            model: tipManager.tips
 
             delegate: Rectangle {
-                width: listView.width - 20 // Добавляем небольшой отступ по бокам
-                height: expanded ? question.height + answer.height + tags.height
-                                   + 60 : question.height + 50
-                anchors.horizontalCenter: parent.horizontalCenter // Центрируем элемент
+                width: listView.width - 20
+                height: expanded ? contentColumn.height + 40 : questionRow.height + 30
+                anchors.horizontalCenter: parent.horizontalCenter
                 radius: 12
                 color: "white"
                 border.color: "#e1bee7"
@@ -211,22 +228,23 @@ Page {
                 property bool expanded: false
 
                 Column {
+                    id: contentColumn
                     width: parent.width
                     padding: 15
                     spacing: 10
 
                     // Вопрос
                     Row {
+                        id: questionRow
                         width: parent.width
                         spacing: 15
 
                         Text {
-                            text: modelData.icon
+                            text: modelData.icon || "💡"
                             font.pixelSize: 24
                         }
 
                         Text {
-                            id: question
                             width: parent.width - 70
                             text: modelData.question
                             font.bold: true
@@ -234,11 +252,16 @@ Page {
                             maximumLineCount: expanded ? 0 : 2
                             elide: Text.ElideRight
                         }
+
+                        Button {
+                            icon.source: modelData.isFavorite ? "qrc:/Images/icons/favorite_filled.svg" : "qrc:/Images/icons/favorite_border.svg"
+                            flat: true
+                            onClicked: tipManager.toggleFavorite(modelData.id)
+                        }
                     }
 
                     // Ответ
                     Text {
-                        id: answer
                         width: parent.width - 20
                         text: modelData.answer
                         visible: expanded
@@ -246,14 +269,13 @@ Page {
                     }
 
                     // Теги
-                    Row {
-                        id: tags
+                    Flow {
                         width: parent.width
                         spacing: 8
                         visible: expanded
 
                         Repeater {
-                            model: modelData.tags
+                            model: modelData.tags || []
                             delegate: Rectangle {
                                 height: 25
                                 radius: 12
@@ -277,5 +299,9 @@ Page {
                 }
             }
         }
+    }
+
+    Component.onCompleted: {
+        tipManager.loadTips()
     }
 }

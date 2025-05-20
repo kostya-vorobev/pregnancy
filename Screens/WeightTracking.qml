@@ -4,11 +4,23 @@ import QtQuick.Layouts
 import QtQuick.Dialogs
 import QtQuick.Controls.Material
 import "../components" as MyComponents
+import PregnancyApp 1.0
 
 Page {
     id: root
     property color primaryColor: "#9c27b0"
     property color secondaryColor: "#e1bee7"
+
+    WeightManager {
+        id: weightManager
+        onWeightDataChanged: {
+            root.weightData = weightManager.weightData
+            chartCard.requestPaint()
+        }
+    }
+
+    property var weightData: []
+    property date currentDate: new Date()
 
     background: Rectangle {
         gradient: Gradient {
@@ -22,9 +34,6 @@ Page {
             }
         }
     }
-
-    property var weightData: []
-    property date currentDate: new Date()
 
     header: ToolBar {
         Material.foreground: "white"
@@ -84,6 +93,31 @@ Page {
                 weightData: root.weightData
                 primaryColor: root.primaryColor
                 secondaryColor: "#f3e5f5"
+
+                onDeleteRequested: function (measurementData) {
+                    deleteDialog.measurementId = measurementData.id
+                    deleteDialog.open()
+                }
+            }
+
+            Dialog {
+                id: deleteDialog
+                title: "Подтверждение удаления"
+                standardButtons: Dialog.Yes | Dialog.No
+                modal: true
+                width: 300
+                property int measurementId: -1
+
+                Label {
+                    width: parent.width
+                    wrapMode: Text.WordWrap
+                    text: "Вы действительно хотите удалить эту запись?"
+                }
+
+                onAccepted: {
+                    // Вызываем метод удаления из C++ класса
+                    weightManager.removeWeightMeasurement(measurementId)
+                }
             }
 
             // Кнопка добавления
@@ -104,42 +138,22 @@ Page {
         id: weightDialog
         currentDate: root.currentDate
 
-        onAccepted: function (weight, date) {
-            root.weightData.push({
-                                     "weight": weight,
-                                     "date": date
-                                 })
-            root.weightData.sort((a, b) => a.date - b.date)
-            chartCard.requestPaint()
+        onAccepted: function (weight, date, note) {
+            if (!weightManager.addWeightMeasurement(weight, date, note)) {
+                errorDialog.text = "Не удалось сохранить данные о весе"
+                errorDialog.open()
+            }
         }
     }
 
+    // Диалог ошибки
     MessageDialog {
         id: errorDialog
         title: "Ошибка"
-        text: "Пожалуйста, введите корректный вес!"
         buttons: MessageDialog.Ok
     }
 
     Component.onCompleted: {
-        // Тестовые данные
-        weightData = [{
-                          "weight": 68.5,
-                          "date": new Date(2023, 5, 1)
-                      }, {
-                          "weight": 67.8,
-                          "date": new Date(2023, 5, 8)
-                      }, {
-                          "weight": 67.2,
-                          "date": new Date(2023, 5, 15)
-                      }, {
-                          "weight": 66.5,
-                          "date": new Date(2023, 5, 22)
-                      }]
-    }
-
-    Timer {
-        interval: 300
-        onTriggered: chartCard.requestPaint()
+        weightManager.loadWeightData()
     }
 }

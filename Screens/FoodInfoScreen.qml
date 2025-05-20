@@ -3,159 +3,97 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Qt5Compat.GraphicalEffects
 import "../components" as MyComponents
+import PregnancyApp 1.0
 
 Page {
     id: root
     anchors.fill: parent
 
-    //width: parent.width
-    //height: contentColumn.implicitHeight + 40
-    //radius: 12
-    //color: "#FFFFFF"
-    //border.color: "#EEEEEE"
-    //border.width: 1
-    property var foodData: [{
-            "name": "Яблоки",
-            "aliases": ["Яблоко"],
-            "imageSource": "qrc:/Images/food/apple.svg",
-            "type": "Фрукты",
-            "categories": [{
-                    "name": "Беременность",
-                    "status": "Умеренно"
-                }, {
-                    "name": "Грудное вскармливание",
-                    "status": "Умеренно"
-                }, {
-                    "name": "После родов",
-                    "status": "Осторожно"
-                }, {
-                    "name": "Младенцы",
-                    "status": "Нельзя"
-                }]
-        }, {
-            "name": "Молоко",
-            "aliases": ["Коровье молоко"],
-            "imageSource": "qrc:/Images/food/milk.svg",
-            "type": "Молочные продукты",
-            "categories": [{
-                    "name": "Беременность",
-                    "status": "Умеренно"
-                }, {
-                    "name": "Грудное вскармливание",
-                    "status": "Умеренно"
-                }, {
-                    "name": "После родов",
-                    "status": "Осторожно"
-                }, {
-                    "name": "Младенцы",
-                    "status": "Нельзя"
-                }]
-        }, {
-            "name": "Морковь",
-            "aliases": [],
-            "imageSource": "qrc:/Images/food/carrot.svg",
-            "type": "Овощи",
-            "categories": [{
-                    "name": "Беременность",
-                    "status": "Умеренно"
-                }, {
-                    "name": "Грудное вскармливание",
-                    "status": "Умеренно"
-                }, {
-                    "name": "После родов",
-                    "status": "Осторожно"
-                }, {
-                    "name": "Младенцы",
-                    "status": "Нельзя"
-                }]
-        }]
+    // Менеджер продуктов (C++ класс)
+    ProductManager {
+        id: productManager
+        onProductsChanged: updateFilteredProducts()
+        onProductTypesChanged: updateTypes()
+    }
 
-    // Текущий выбранный тип продукта для фильтрации
     property string selectedType: "Все"
+    property var filteredFoodData: []
+    property var types: ["Все"]
 
-    // Получаем уникальные типы продуктов для фильтров
-    function getProductTypes() {
-        var types = ["Все"]
-        for (var i = 0; i < foodData.length; i++) {
-            if (foodData[i].type && types.indexOf(foodData[i].type) === -1) {
-                types.push(foodData[i].type)
-            }
+    function updateTypes() {
+        var newTypes = ["Все"]
+        for (var i = 0; i < productManager.productTypes.length; i++) {
+            newTypes.push(productManager.productTypes[i].name)
         }
-        return types
+        root.types = newTypes
     }
 
-    // Фильтрованный список продуктов
-    property var filteredFoodData: {
+    function updateFilteredProducts() {
         if (selectedType === "Все") {
-            return foodData
+            root.filteredFoodData = productManager.products
         } else {
-            return foodData.filter(function (food) {
-                return food.type === selectedType
-            })
-        }
-    }
-    header: ToolBar {
-        background: Rectangle {
-            color: "#9c27b0"
-            layer.enabled: true
-            layer.effect: DropShadow {
-                verticalOffset: 2
-                radius: 8
-                samples: 16
-                color: "#40000000"
-            }
-        }
-
-        RowLayout {
-            anchors.fill: parent
-            spacing: 16
-            anchors.leftMargin: 12
-            anchors.rightMargin: 12
-
-            ToolButton {
-                icon.source: "qrc:/Images/icons/arrow_back.svg"
-                icon.color: "white"
-                onClicked: stackView.pop()
-            }
-
-            Label {
-                text: "Каталог продуктов"
-                font {
-                    family: "Comfortaa"
-                    pixelSize: 20
-                    bold: true
+            var filtered = []
+            for (var i = 0; i < productManager.products.length; i++) {
+                if (productManager.products[i].typeName === selectedType) {
+                    filtered.push(productManager.products[i])
                 }
-                color: "white"
-                Layout.fillWidth: true
-                horizontalAlignment: Text.AlignHCenter
             }
+            root.filteredFoodData = filtered
         }
     }
+
+    function getCategoriesForProduct(product) {
+        var categories = []
+        if (product.recommendations) {
+            for (var i = 0; i < product.recommendations.length; i++) {
+                categories.push({
+                                    "name": product.recommendations[i].category,
+                                    "status": product.recommendations[i].status
+                                })
+            }
+        }
+        return categories
+    }
+
+    Component.onCompleted: {
+        productManager.loadProducts()
+    }
+
+    // Остальной интерфейс остается аналогичным, но с небольшими изменениями:
     ColumnLayout {
         id: contentColumn
         anchors.fill: parent
         anchors.margins: 20
         spacing: 15
 
-        // Фильтры по типам продуктов
         MyComponents.CategoryFilters {
             id: typeFilters
             Layout.fillWidth: true
-            types: getProductTypes()
+            types: root.types
             selectedType: root.selectedType
             onTypeSelected: {
                 root.selectedType = type
+                if (type === "Все") {
+                    productManager.filterByType(-1)
+                } else {
+                    // Найти ID выбранного типа
+                    for (var i = 0; i < productManager.productTypes.length; i++) {
+                        if (productManager.productTypes[i].name === type) {
+                            productManager.filterByType(
+                                        productManager.productTypes[i].id)
+                            break
+                        }
+                    }
+                }
             }
         }
 
-        // Список продуктов
-        // Исправленный Flickable для списка продуктов
         Flickable {
             id: flickable
             width: parent.width
-            height: parent.height + 20
+            height: parent.height - typeFilters.height - 20
             contentWidth: contentRow.width
-            contentHeight: parent.height
+            contentHeight: productsColumn.height
             clip: true
 
             Column {
@@ -167,18 +105,12 @@ Page {
                     model: root.filteredFoodData
                     delegate: MyComponents.FoodCard {
                         width: productsColumn.width
-                        // Убедитесь, что у FoodCard есть явная высота
                         foodName: modelData.name
-                        foodAliases: modelData.aliases
-                        foodCategories: modelData.categories
+                        foodAliases: [] // Можно добавить aliases в базу данных
+                        foodCategories: getCategoriesForProduct(modelData)
                         imageSource: modelData.imageSource
                     }
                 }
-            }
-
-            ScrollBar.vertical: ScrollBar {
-                policy: ScrollBar.AsNeeded
-                width: 8
             }
         }
     }

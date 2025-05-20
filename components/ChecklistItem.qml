@@ -9,24 +9,24 @@ Rectangle {
     property string text: ""
     property bool checked: false
     property color indicatorColor: "#9c27b0"
+    property int taskId: -1 // Добавляем ID задачи для связи с базой
 
     height: 56
     radius: 12
     color: "white"
     clip: true
 
-    // Сигнал для изменения состояния
-    signal toggled(bool checked)
+    // Сигнал для изменения состояния с передачей ID задачи
+    signal toggled(int taskId, bool checked)
 
-    // Внешний MouseArea для всей области
     MouseArea {
         anchors.fill: parent
         onClicked: {
             root.checked = !root.checked
-            root.toggled(root.checked)
+            root.toggled(root.taskId,
+                         root.checked) // Передаем ID задачи и новое состояние
         }
 
-        // Основное содержимое
         RowLayout {
             id: content
             anchors.fill: parent
@@ -34,7 +34,6 @@ Rectangle {
             anchors.rightMargin: 16
             spacing: 16
 
-            // Кастомный чекбокс
             Rectangle {
                 id: checkbox
                 width: 24
@@ -44,23 +43,15 @@ Rectangle {
                 border.color: root.checked ? root.indicatorColor : "#e0e0e0"
                 color: root.checked ? root.indicatorColor : "transparent"
 
-                // Галочка
                 Text {
                     anchors.centerIn: parent
                     text: "✓"
                     color: "white"
                     font.pixelSize: 14
                     visible: root.checked
-                    opacity: root.checked ? 1 : 0
-                    Behavior on opacity {
-                        NumberAnimation {
-                            duration: 100
-                        }
-                    }
                 }
             }
 
-            // Текст задачи
             Text {
                 id: taskText
                 text: root.text
@@ -70,7 +61,6 @@ Rectangle {
                 color: root.checked ? "#666" : "#333"
                 wrapMode: Text.WordWrap
 
-                // Линия перечеркивания
                 Rectangle {
                     anchors.verticalCenter: parent.verticalCenter
                     width: root.checked ? parent.width : 0
@@ -86,7 +76,7 @@ Rectangle {
         }
     }
 
-    // Анимация при нажатии
+    // Анимации остаются без изменений
     SequentialAnimation {
         id: clickAnim
         PropertyAction {
@@ -113,7 +103,5 @@ Rectangle {
             value: 0
         }
     }
-
-    // Запуск анимации при изменении состояния
     onCheckedChanged: clickAnim.start()
 }

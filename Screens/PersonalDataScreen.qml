@@ -1,81 +1,69 @@
 import QtQuick
 import QtQuick.Controls
 import "../components" as MyComponents
-import PregnancyAppData 1.0
+import PregnancyApp 1.0
 
 Item {
     id: root
+
+    property int profileId: 1
 
     property color primaryColor: "#9c27b0"
     property color textColor: "#4a148c"
     property real defaultRadius: 14
 
-    property int currentProfileId: 1 // Добавляем ID профиля
-    property string currentFirstName: ""
-    property string currentLastName: ""
-    property string currentMiddleName: ""
-    property date currentDateBirth: new Date()
-    property int currentGestationalAge: 1
-    property int currentHeight: 0
-    property double currentWeight: 0
-    property string currentBloodType: ""
-    property double currentInitialWeight: 0
-    property double currentPrePregnancyWeight: 0
-    property double currentWeightGainGoal: 0
+    property Profile userProfile: Profile {
+        id: profile
+        onDataLoaded: loadFormData()
+    }
 
-    DatabaseHandler {
-        id: dbHandler
-        Component.onCompleted: {
-            if (!dbHandler.initializeDatabase()) {
-                console.error("Failed to initialize database")
-            }
+    // Загрузка данных при создании
+    Component.onCompleted: {
+        if (profileId > 0) {
+            profile.id = profileId
+            profile.loadData()
         }
     }
-    function validateInput() {
-        if (!firstNameField.text || !lastNameField.text) {
-            console.error("Имя и фамилия обязательны для заполнения")
-            return false
-        }
 
-        var height = parseInt(heightField.text)
-        if (isNaN(height) || height <= 0 || height > 250) {
-            console.error("Некорректный рост (должен быть от 1 до 250 см)")
-            return false
-        }
-
-        var weight = parseFloat(weightField.text)
-        if (isNaN(weight) || weight <= 0 || weight > 300) {
-            console.error("Некорректный вес (должен быть от 1 до 300 кг)")
-            return false
-        }
-
-        return true
+    // Заполнение формы данными из профиля
+    function loadFormData() {
+        firstNameField.text = profile.lastName
+        lastNameField.text = profile.firstName
+        middleNameField.text = profile.middleName
+        heightField.text = profile.height > 0 ? profile.height : ""
+        weightField.text = profile.weight > 0 ? profile.weight : ""
     }
+
+    // Сохранение данных
     function saveData() {
-        if (!validateInput()) {
-            return
-        }
-        // Установим значения по умолчанию для отсутствующих полей
-        var success = dbHandler.savePersonalData(
-                    currentProfileId, firstNameField.text,
-                    lastNameField.text, middleNameField.text,
-                    currentDateBirth, currentGestationalAge,
-                    parseInt(heightField.text) || 0, parseFloat(
-                        weightField.text) || 0.0, currentBloodType || "A+",
-                    // Значение по умолчанию для группы крови
-                    currentInitialWeight || 0.0,
-                    currentPrePregnancyWeight || 0.0,
-                    currentWeightGainGoal || 0.0)
+        profile.lastName = firstNameField.text
+        profile.firstName = lastNameField.text
+        profile.middleName = middleNameField.text
+        profile.height = parseInt(heightField.text) || 0
+        profile.weight = parseFloat(weightField.text) || 0
 
-        if (success) {
-            var mainWin = ApplicationWindow.window
-            if (mainWin)
-                mainWin.showFooterRequested(true)
-            stackView.clear()
+        if (profile.save()) {
             stackView.push("qrc:/Screens/HomeScreen.qml")
         } else {
-            console.error("Ошибка сохранения данных")
-            // Можно показать сообщение об ошибке пользователю
+            errorMessage.open()
+        }
+    }
+
+    // Сообщения
+    Popup {
+        id: savedMessage
+        anchors.centerIn: parent
+        Text {
+            text: "Данные сохранены!"
+        }
+    }
+
+    Popup {
+        id: errorMessage
+        anchors.centerIn: parent
+        Text {
+            text: "Ошибка сохранения!"
+            color: "red"
         }
     }
 
@@ -116,7 +104,7 @@ Item {
                     horizontalAlignment: Text.AlignHCenter
                 }
 
-                // Поле для ФИО
+                // Поле для Фамилии
                 Column {
                     width: parent.width
                     spacing: 5
@@ -134,10 +122,11 @@ Item {
                         id: firstNameField
                         width: parent.width
                         placeholderText: "Введите вашу фамилию"
+                        text: profile.firstName
                     }
                 }
 
-                // Поле для ФИО
+                // Поле для Имя
                 Column {
                     width: parent.width
                     spacing: 5
@@ -155,10 +144,11 @@ Item {
                         id: lastNameField
                         width: parent.width
                         placeholderText: "Введите ваше имя"
+                        text: profile.lastName
                     }
                 }
 
-                // Поле для ФИО
+                // Поле для Отчества
                 Column {
                     width: parent.width
                     spacing: 5
@@ -176,6 +166,7 @@ Item {
                         id: middleNameField
                         width: parent.width
                         placeholderText: "Введите ваше отчество"
+                        text: profile.middleName
                     }
                 }
 
@@ -198,6 +189,7 @@ Item {
                         width: parent.width
                         placeholderText: "Введите ваш рост"
                         inputMethodHints: Qt.ImhDigitsOnly
+                        text: profile.height
                     }
                 }
 
@@ -220,6 +212,7 @@ Item {
                         width: parent.width
                         placeholderText: "Введите ваш вес"
                         inputMethodHints: Qt.ImhDigitsOnly
+                        text: profile.weight
                     }
                 }
                 Component.onCompleted: {

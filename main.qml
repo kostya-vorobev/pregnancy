@@ -24,18 +24,13 @@ ApplicationWindow {
     function setFooterVisible(visible) {
         showFooter = visible
     }
-    Item {
-        id: safeItemTop
-        anchors.top: parent.top
-        height: 20
-    }
 
     StackView {
 
         id: stackView
         initialItem: "qrc:/Screens/WelcomeScreen.qml"
         anchors {
-            top: safeItemTop.bottom
+            top: parent.top
             left: parent.left
             right: parent.right
             bottom: showFooter ? footer.top : parent.bottom
@@ -45,15 +40,9 @@ ApplicationWindow {
     // Подключаем нижнюю панель через прямой путь
     Loader {
         id: footer
-        anchors.bottom: safeItemBottom.top
+        anchors.bottom: parent.bottom
         visible: showFooter
         width: parent.width
         source: "qrc:/components/Footer.qml"
-    }
-
-    Item {
-        id: safeItemBottom
-        anchors.bottom: parent.bottom
-        height: 20
     }
 }

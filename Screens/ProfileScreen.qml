@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import "../components" as MyComponents
+import PregnancyApp 1.0
 
 Item {
     id: root
@@ -12,11 +13,78 @@ Item {
     property color textColor: "#4a148c"
     property real defaultRadius: 14
 
-    // Данные пользователя
     property string userName: "Иванова Анна"
-    property string userEmail: "anna@example.com"
-    property string userInfo: "28 лет, 12 неделя беременности"
+    property string userInfo: "12 неделя беременности"
     property url userAvatar: "https://via.placeholder.com/150"
+
+    // Данные пользователя
+    property Profile userProfile: Profile {
+        id: profileData
+        onDataLoaded: {
+            console.log("Данные профиля загружены")
+            pregnancyProgressData.loadData()
+        }
+    }
+
+    PregnancyProgress {
+        id: pregnancyProgressData
+        profileId: profileData.id
+        onDataLoaded: {
+            console.log("Данные профиля загружены")
+            updateUI()
+        }
+    }
+
+    // Инициализация - загрузка данных профиля
+    Component.onCompleted: {
+        // Загружаем профиль с ID=1 (можно сделать параметром)
+        profileData.id = 1
+        profileData.loadData()
+    }
+
+    function updateUI() {
+        // Обновляем все поля интерфейса при загрузке данных
+        userName = profileData.lastName + " " + profileData.firstName
+        if (profileData.middleName.length > 0)
+            userName += " " + profileData.middleName
+        userAvatar = "qrc:/Image/Avatar/" + profileData.profilePhoto
+        birthDateField.text = profileData.dateBirth ? Qt.formatDate(
+                                                          profileData.dateBirth,
+                                                          "dd.MM.yyyy") : ""
+        heightField.text = profileData.height > 0 ? profileData.height : 0
+        weightBeforeField.text = profileData.weight.toFixed(
+                    1) > 0 ? profileData.weight.toFixed(1) : 0
+        bloodTypeField.text = profileData.bloodType > 0 ? profileData.bloodType : 0
+
+        userInfo = (pregnancyProgressData.currentWeek) + " неделя беременности"
+        pregnancyWeekField.text = (pregnancyProgressData.currentWeek)
+    }
+
+    function calculateAge(birthDate) {
+        var today = new Date()
+        var birth = new Date(birthDate)
+        var age = today.getFullYear() - birth.getFullYear()
+        var m = today.getMonth() - birth.getMonth()
+        if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+            age--
+        }
+        return age
+    }
+
+    function saveProfile() {
+        // Обновляем модель перед сохранением
+        profileData.dateBirth = new Date(birthDateField.text)
+        profileData.height = parseInt(heightField.text)
+        profileData.weight = parseFloat(weightBeforeField.text)
+        profileData.bloodType = bloodTypeField.text
+
+        if (profileData.save()) {
+            editMode = false
+            console.log("Профиль успешно сохранен")
+        } else {
+            console.log("Ошибка сохранения профиля")
+        }
+    }
 
     // Режим редактирования
     property bool editMode: false
@@ -281,7 +349,7 @@ Item {
                     spacing: 5
 
                     Text {
-                        text: "Возраст:"
+                        text: "Дата рождения:"
                         font {
                             family: "Comfortaa"
                             pixelSize: Math.min(16, root.width * 0.045)
@@ -290,19 +358,22 @@ Item {
                     }
 
                     MyComponents.CustomTextField {
-                        id: ageField
+                        id: birthDateField
                         width: parent.width
-                        placeholderText: "Введите ваш возраст"
-                        text: "28"
-                        inputMethodHints: Qt.ImhDigitsOnly
+                        placeholderText: "ДД.ММ.ГГГГ"
+                        text: ""
                         readOnly: !editMode
                         visible: editMode
                         opacity: editMode ? 1.0 : 0.7
+                        inputMethodHints: Qt.ImhDate
+                        validator: RegularExpressionValidator {
+                            regularExpression: /^(0[1-9]|[12][0-9]|3[01])\.(0[1-9]|1[012])\.(19|20)\d\d$/
+                        }
                     }
 
                     Text {
                         visible: !editMode
-                        text: ageField.text + " лет"
+                        text: birthDateField.text || "Не указана"
                         font {
                             family: "Comfortaa"
                             pixelSize: Math.min(16, root.width * 0.045)
@@ -428,11 +499,7 @@ Item {
                     text: "Сохранить изменения"
                     visible: editMode
                     onClicked: {
-                        console.log("Данные сохранены:",
-                                    pregnancyWeekField.text, dueDateField.text,
-                                    ageField.text, heightField.text,
-                                    weightBeforeField.text)
-                        editMode = false
+                        saveProfile()
                     }
                 }
 

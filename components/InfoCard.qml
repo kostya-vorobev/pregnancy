@@ -6,7 +6,7 @@ Rectangle {
     property alias content: contentText.text
 
     width: parent.width
-    height: column.implicitHeight + 20 // учитываем margins (10 сверху и снизу)
+    implicitHeight: column.implicitHeight + 20 // используем implicitHeight
     radius: 8
     color: "#ffffff"
     border.color: "#e1bee7"

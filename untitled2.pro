@@ -1,30 +1,39 @@
-QT += quick quickcontrols2 charts qml sql
+QT += quick quickcontrols2 charts qml sql core-private core5compat
 
 SOURCES += \
-        Classes/backupmanager.cpp \
-        Classes/databasehandler.cpp \
-        Classes/pregnancydata.cpp \
-        main.cpp
+    Classes/articlemanager.cpp \
+    Classes/checklistmanager.cpp \
+    Classes/dailytip.cpp \
+    Classes/databasemanager.cpp \
+    Classes/dietmanager.cpp \
+    Classes/fetalkickmanager.cpp \
+    Classes/pregnancyprogress.cpp \
+    Classes/pregnancyweek.cpp \
+    Classes/productmanager.cpp \
+    Classes/profile.cpp \
+    Classes/tipmanager.cpp \
+    Classes/weightmanager.cpp \
+    main.cpp
 
-resources.files = main.qml 
-resources.prefix = /$${TARGET}
-RESOURCES += \
-        qml.qrc \
-        resources
+HEADERS += \
+    Classes/articlemanager.h \
+    Classes/checklistmanager.h \
+    Classes/dailytip.h \
+    Classes/databasemanager.h \
+    Classes/dietmanager.h \
+    Classes/fetalkickmanager.h \
+    Classes/pregnancyprogress.h \
+    Classes/pregnancyweek.h \
+    Classes/productmanager.h \
+    Classes/profile.h \
+    Classes/tipmanager.h \
+    Classes/weightmanager.h
+
+RESOURCES += qml.qrc
 
 CONFIG += c++17
 
-# Additional import path used to resolve QML modules in Qt Creator's code model
-QML_IMPORT_PATH =
-
-# Additional import path used to resolve QML modules just for Qt Quick Designer
-QML_DESIGNER_IMPORT_PATH =
-
-# Default rules for deployment.
-qnx: target.path = /tmp/$${TARGET}/bin
-else: unix:!android: target.path = /opt/$${TARGET}/bin
-!isEmpty(target.path): INSTALLS += target
-
+# QML files
 DISTFILES += \
     Screens/AnalizeScreen.qml \
     Screens/Home.qml \
@@ -43,8 +52,23 @@ DISTFILES += \
     components/FooterButton.qml \
     components/NoteEditor.qml
 
-HEADERS += \
-    Classes/backupmanager.h \
-    Classes/databasehandler.h \
-    Classes/pregnancydata.h
+# Android specific configuration
+android {
+    #ANDROID_EXTRA_LIBS = $$[QT_INSTALL_PLUGINS]/sqldrivers/libqtsql_sqlite.so
+    ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
+    ANDROID_MIN_SDK_VERSION = 21
+    ANDROID_TARGET_SDK_VERSION = 33
 
+    # Make sure these files exist in your android directory
+    DISTFILES += \
+        android/AndroidManifest.xml \
+        android/build.gradle \
+        android/res/values/libs.xml \
+        android/res/xml/qtprovider_paths.xml
+}
+
+# For other platforms
+!android {
+    target.path = /opt/$${TARGET}/bin
+    INSTALLS += target
+}

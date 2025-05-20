@@ -6,13 +6,14 @@ Rectangle {
     property var excluded
 
     width: parent.width
-    height: Math.max(recommendedCol.height, excludedCol.height) + 40
+    implicitHeight: contentRow.implicitHeight + 20 // используем implicitHeight
     radius: 8
     color: "#ffffff"
     border.color: "#e1bee7"
     border.width: 1
 
     RowLayout {
+        id: contentRow
         anchors.fill: parent
         anchors.margins: 10
         spacing: 15
@@ -37,6 +38,9 @@ Rectangle {
             Repeater {
                 model: recommended
                 delegate: ColumnLayout {
+                    width: parent.width
+                    spacing: 2
+
                     Text {
                         Layout.fillWidth: true
                         text: modelData.category + ":"
@@ -50,7 +54,6 @@ Rectangle {
                     }
 
                     Repeater {
-
                         model: modelData.items
                         delegate: Text {
                             Layout.fillWidth: true
@@ -84,6 +87,9 @@ Rectangle {
             Repeater {
                 model: excluded
                 delegate: ColumnLayout {
+                    width: parent.width
+                    spacing: 2
+
                     Text {
                         Layout.fillWidth: true
                         text: modelData.category + ":"

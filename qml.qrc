@@ -94,5 +94,14 @@
         <file>Images/equal/peas.svg</file>
         <file>Images/equal/poppy.svg</file>
         <file>Images/equal/pumpkin.svg</file>
+        <file>android/AndroidManifest.xml</file>
+        <file>Classes/databasemanager.cpp</file>
+        <file>Images/icons/lightbulb.svg</file>
+        <file>components/ModernProgressBar.qml</file>
+        <file>Images/food/beef.svg</file>
+        <file>Images/food/salmon.svg</file>
+        <file>Images/icons/favorite_border.svg</file>
+        <file>Images/icons/delete.svg</file>
+        <file>Images/icons/arrow_right.svg</file>
     </qresource>
 </RCC>
