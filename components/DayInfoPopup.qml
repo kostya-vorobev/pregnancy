@@ -1,4 +1,3 @@
-// components/DayInfoPopup.qml
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -13,10 +12,15 @@ Popup {
     padding: 0
 
     property date selectedDate: new Date()
-    property string weightValue: "Никогда не измерялось"
-    property string pressureValue: "Никогда не измерялось"
-    property string waistValue: "Никогда не измерялось"
+    property string weightValue: ""
+    property string pressureValue: ""
+    property string waistValue: ""
+    property string moodValue: ""
+    property var symptomsModel: []
 
+    signal saveClicked(var data)
+
+    // Объявляем сигнал с одним параметром
     background: Rectangle {
         radius: 10
         color: "white"
@@ -45,13 +49,35 @@ Popup {
                     font.pixelSize: 18
                     color: "white"
                 }
+
+                Button {
+                    anchors {
+                        right: parent.right
+                        rightMargin: 10
+                        verticalCenter: parent.verticalCenter
+                    }
+                    text: "Сохранить"
+                    flat: true
+                    onClicked: {
+                        var dataToSave = {
+                            "date": selectedDate,
+                            "weight": weightValue,
+                            "pressure": pressureValue,
+                            "waist": waistValue,
+                            "mood": moodValue,
+                            "symptoms": symptomsModel
+                        }
+                        saveClicked(dataToSave) // Передаем один объект
+                        close()
+                    }
+                }
             }
 
             // Блок показателей
             GridLayout {
                 width: parent.width - 40
                 anchors.horizontalCenter: parent.horizontalCenter
-                columns: 2
+                columns: 1
                 columnSpacing: 20
                 rowSpacing: 15
 
@@ -65,15 +91,13 @@ Popup {
                         font.pixelSize: 14
                         color: "#666"
                     }
-                    Label {
+                    CustomTextField {
+                        id: weightField
+                        width: parent.width
                         text: weightValue
-                        font.pixelSize: 16
-                    }
-                    Button {
-                        text: "ДОБАВИТЬ"
-                        flat: true
-                        font.bold: true
-                        onClicked: addWeightDialog.open()
+                        placeholderText: "Введите вес (кг)"
+                        inputMethodHints: Qt.ImhFormattedNumbersOnly
+                        onTextChanged: weightValue = text
                     }
                 }
 
@@ -87,15 +111,16 @@ Popup {
                         font.pixelSize: 14
                         color: "#666"
                     }
-                    Label {
+                    CustomTextField {
+                        id: pressureField
+                        width: parent.width
                         text: pressureValue
-                        font.pixelSize: 16
-                    }
-                    Button {
-                        text: "ДОБАВИТЬ"
-                        flat: true
-                        font.bold: true
-                        onClicked: addPressureDialog.open()
+                        placeholderText: "120/80"
+                        inputMethodHints: Qt.ImhFormattedNumbersOnly
+                        validator: RegularExpressionValidator {
+                            regularExpression: /^\d{2,3}\/\d{2,3}$/
+                        }
+                        onTextChanged: pressureValue = text
                     }
                 }
 
@@ -105,40 +130,18 @@ Popup {
                     spacing: 5
 
                     Label {
-                        text: "Живот"
+                        text: "Обхват талии"
                         font.pixelSize: 14
                         color: "#666"
                     }
-                    Label {
+                    CustomTextField {
+                        id: waistField
+                        width: parent.width
                         text: waistValue
-                        font.pixelSize: 16
+                        placeholderText: "Введите обхват (см)"
+                        inputMethodHints: Qt.ImhFormattedNumbersOnly
+                        onTextChanged: waistValue = text
                     }
-                    Button {
-                        text: "ДОБАВИТЬ"
-                        flat: true
-                        font.bold: true
-                        onClicked: addWaistDialog.open()
-                    }
-                }
-            }
-
-            // Планы на день
-            Column {
-                width: parent.width - 40
-                anchors.horizontalCenter: parent.horizontalCenter
-                spacing: 10
-
-                Label {
-                    text: "Планы на день:"
-                    font.pixelSize: 16
-                    color: "#4a148c"
-                }
-
-                Button {
-                    text: "Посещение специалиста"
-                    flat: true
-                    font.bold: true
-                    onClicked: addAppointmentDialog.open()
                 }
             }
 
@@ -149,36 +152,50 @@ Popup {
                 spacing: 10
 
                 Label {
-                    text: "Как ваши дела?"
+                    text: "Симптомы"
                     font.pixelSize: 16
                     color: "#4a148c"
                 }
 
-                Label {
-                    text: "Симптомы"
-                    font.pixelSize: 14
-                    color: "#666"
-                }
+                Repeater {
+                    model: symptomsModel
 
-                Flow {
-                    width: parent.width
-                    spacing: 10
-
-                    Repeater {
-                        model: ["всё в порядке", "акне", "головная боль", "боль в пояснице", "боли в теле", "спазмы внизу живота", "усталость"]
+                    delegate: RowLayout {
+                        width: parent.width
+                        spacing: 10
 
                         CheckBox {
-                            text: modelData
-                            checked: index === 0
+                            checked: modelData.severity > 0
+                            onCheckedChanged: {
+                                var updatedSymptoms = symptomsModel
+                                updatedSymptoms[index].severity = checked ? 1 : 0
+                                symptomsModel = updatedSymptoms
+                            }
+                        }
+
+                        Label {
+                            text: modelData.name
+                            Layout.fillWidth: true
+                        }
+
+                        Slider {
+                            from: 1
+                            to: 5
+                            value: modelData.severity > 0 ? modelData.severity : 1
+                            stepSize: 1
+                            visible: modelData.severity > 0
+                            onMoved: {
+                                var updatedSymptoms = symptomsModel
+                                updatedSymptoms[index].severity = value
+                                symptomsModel = updatedSymptoms
+                            }
+                        }
+
+                        Label {
+                            text: modelData.severity > 0 ? modelData.severity + "/5" : ""
+                            visible: modelData.severity > 0
                         }
                     }
-                }
-
-                Button {
-                    text: "ЕЩЁ"
-                    flat: true
-                    font.bold: true
-                    onClicked: showMoreSymptoms()
                 }
             }
 
@@ -190,41 +207,73 @@ Popup {
 
                 Label {
                     text: "Настроение"
-                    font.pixelSize: 14
-                    color: "#666"
+                    font.pixelSize: 16
+                    color: "#4a148c"
                 }
 
-                Flow {
+                CustomComboBox {
+                    id: moodComboBox
                     width: parent.width
-                    spacing: 10
-
-                    Repeater {
-                        model: ["вдохновленная", "безразличная", "радостная", "грустная", "злая", "возбужденная", "в панике"]
-
-                        RadioButton {
-                            text: modelData
-                            checked: index === 2
+                    model: ["", "Отличное", "Хорошее", "Нормальное", "Плохое", "Ужасное"]
+                    currentIndex: {
+                        switch (moodValue) {
+                        case "Отличное":
+                            return 1
+                        case "Хорошее":
+                            return 2
+                        case "Нормальное":
+                            return 3
+                        case "Плохое":
+                            return 4
+                        case "Ужасное":
+                            return 5
+                        default:
+                            return 0
                         }
                     }
+                    onActivated: moodValue = currentText
                 }
             }
         }
     }
 
-    // Диалоги добавления данных
+    // Диалог добавления симптома
     Dialog {
-        id: addWeightDialog
-        title: "Добавить вес"
-        // ... реализация диалога
-    }
+        id: symptomDialog
+        title: "Добавить симптом"
+        anchors.centerIn: parent
+        standardButtons: Dialog.Ok | Dialog.Cancel
 
-    Dialog {
-        id: addPressureDialog
-        title: "Добавить давление"
-        // ... реализация диалога
-    }
+        Column {
+            width: parent.width
+            spacing: 10
 
-    // ... остальные диалоги
-    function showMoreSymptoms() {// Логика показа дополнительных симптомов
+            CustomComboBox {
+                id: symptomComboBox
+                width: parent.width
+                model: ["Тошнота", "Головная боль", "Боль в спине", "Изжога", "Отеки", "Судороги"]
+            }
+
+            SpinBox {
+                id: severitySpinBox
+                width: parent.width
+                from: 1
+                to: 5
+                value: 1
+                textFromValue: function (value) {
+                    return "Интенсивность: " + value
+                }
+            }
+        }
+
+        onAccepted: {
+            var newSymptom = {
+                "name": symptomComboBox.currentText,
+                "severity": severitySpinBox.value,
+                "notes": ""
+            }
+            symptomsModel.push(newSymptom)
+            symptomsModel = symptomsModel // Force update
+        }
     }
 }

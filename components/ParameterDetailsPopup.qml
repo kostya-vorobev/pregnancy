@@ -46,7 +46,8 @@ Popup {
                 font.pixelSize: 16
             }
             Label {
-                text: parameterData.value + " " + (parameterData.unit || "")
+                text: (parameterData.value
+                       || "--") + " " + (parameterData.unit || "")
                 font.pixelSize: 16
                 Layout.fillWidth: true
             }
@@ -63,17 +64,18 @@ Popup {
                 Layout.fillWidth: true
             }
 
-            // Тренд
+            // Тренд (показываем только если есть данные)
             Label {
                 text: "Тренд:"
                 font.bold: true
                 font.pixelSize: 16
-                visible: parameterData.trend
+                visible: parameterData.trend !== undefined
             }
             Label {
-                text: getTrendText(parameterData.trend)
+                text: parameterData.trend !== undefined ? getTrendText(
+                                                              parameterData.trend) : ""
                 font.pixelSize: 16
-                visible: parameterData.trend
+                visible: parameterData.trend !== undefined
                 Layout.fillWidth: true
             }
         }
@@ -85,6 +87,7 @@ Popup {
             color: "#f5f5f5"
             radius: 5
             border.color: "#e0e0e0"
+            visible: false // Временно скрыто, пока не реализовано
 
             Label {
                 anchors.centerIn: parent
@@ -109,7 +112,7 @@ Popup {
 
         Item {
             Layout.fillWidth: true
-            Layout.preferredHeight: 50 // Фиксированная высота для кнопки
+            Layout.preferredHeight: 50
             Layout.topMargin: 15
 
             MyComponents.CustomButton {
@@ -118,26 +121,55 @@ Popup {
                 anchors {
                     left: parent.left
                     right: parent.right
-                    margins: 10 // Отступы по бокам
+                    margins: 10
                 }
                 height: parent.height
                 onClicked: root.close()
             }
         }
+        Item {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 50
+            Layout.topMargin: 15
+
+            MyComponents.CustomButton {
+                text: "История"
+                anchors {
+                    left: parent.left
+                    right: parent.right
+                    margins: 10
+                }
+                height: parent.height
+                onClicked: {
+                    console.log(parameterData.id + " " + parameterData.name
+                                + " " + parameterData.unit)
+                    historyPopup.parameterId = parameterData.typeId
+                    historyPopup.parameterName = parameterData.name
+                    historyPopup.parameterUnit = parameterData.unit
+                    historyPopup.open()
+                }
+            }
+        }
     }
 
     function getNormalRangeText(data) {
+        if (!data)
+            return "не указаны"
+
         if (data.min !== undefined && data.max !== undefined) {
-            return data.min + " - " + data.max + " " + data.unit
+            return data.min + " - " + data.max + " " + (data.unit || "")
         } else if (data.max !== undefined) {
-            return "до " + data.max + " " + data.unit
+            return "до " + data.max + " " + (data.unit || "")
         } else if (data.min !== undefined) {
-            return "от " + data.min + " " + data.unit
+            return "от " + data.min + " " + (data.unit || "")
         }
         return "не указаны"
     }
 
     function getTrendText(trend) {
+        if (!trend)
+            return "Неизвестно"
+
         switch (trend) {
         case "increasing":
             return "Повышается ↗"
@@ -151,8 +183,9 @@ Popup {
     }
 
     function getRecommendations(data) {
-        if (!data.value)
+        if (!data || data.value === undefined) {
             return "Нет данных для рекомендаций"
+        }
 
         if (data.min !== undefined && data.value < data.min) {
             return "• Показатель ниже нормы\n• Рекомендуется консультация врача\n• Возможно, требуется корректировка питания"

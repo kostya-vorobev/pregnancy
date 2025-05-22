@@ -1,12 +1,14 @@
 QT += quick quickcontrols2 charts qml sql core-private core5compat
 
 SOURCES += \
+    Classes/analysismanager.cpp \
     Classes/articlemanager.cpp \
     Classes/checklistmanager.cpp \
     Classes/dailytip.cpp \
     Classes/databasemanager.cpp \
     Classes/dietmanager.cpp \
     Classes/fetalkickmanager.cpp \
+    Classes/pregnancycalendarmanager.cpp \
     Classes/pregnancyprogress.cpp \
     Classes/pregnancyweek.cpp \
     Classes/productmanager.cpp \
@@ -16,12 +18,14 @@ SOURCES += \
     main.cpp
 
 HEADERS += \
+    Classes/analysismanager.h \
     Classes/articlemanager.h \
     Classes/checklistmanager.h \
     Classes/dailytip.h \
     Classes/databasemanager.h \
     Classes/dietmanager.h \
     Classes/fetalkickmanager.h \
+    Classes/pregnancycalendarmanager.h \
     Classes/pregnancyprogress.h \
     Classes/pregnancyweek.h \
     Classes/productmanager.h \

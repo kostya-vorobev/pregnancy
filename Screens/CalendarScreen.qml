@@ -9,34 +9,80 @@ Item {
     width: parent.width
     height: parent.height
 
-    property int currentWeek: 6
-    property int currentDay: 43
+    property int currentWeek: 0
+    property int currentDay: 0
     property date currentDate: new Date()
     property string currentMonth: Qt.formatDate(currentDate, "MMMM")
     property string currentYear: Qt.formatDate(currentDate, "yyyy")
 
     // Данные для календаря
     property var calendarData: {
-        "Апрель": [[null, 1, 2, 3, 4, 5, 6], [7, 8, 9, 10, 11, 12, 13], [14, 15, 16, 17, 18, 19, 20], [21, 22, 23, 24, 25, 26, 27], [28, 29, 30, null, null, null, null]],
-        "Май": [[null, null, null, 1, 2, 3, 4], [5, 6, 7, 8, 9, 10, 11], [12, 13, 14, 15, 16, 17, 18], [19, 20, 21, 22, 23, 24, 25], [26, 27, 28, 29, 30, 31, null]]
+        var now = new Date()
+        var month = now.getMonth()
+        var year = now.getFullYear()
+
+        // Генерация календаря для текущего и следующего месяца
+        var months = {}
+        for (var m = 0; m < 9; m++) {
+            var monthName = Qt.locale().monthName((month + m) % 12,
+                                                  Locale.LongFormat)
+            var firstDay = new Date(year, (month + m) % 12, 1).getDay()
+            var daysInMonth = new Date(year, (month + m) % 12 + 1, 0).getDate()
+
+            var weeks = []
+            var day = 1
+            for (var w = 0; w < 6; w++) {
+                var week = []
+                for (var d = 0; d < 7; d++) {
+                    if ((w === 0 && d < firstDay + 1) || day > daysInMonth) {
+                        week.push(null)
+                    } else {
+                        week.push(day++)
+                    }
+                }
+                weeks.push(week)
+                if (day > daysInMonth)
+                    break
+            }
+            months[monthName] = weeks
+        }
+        return months
     }
 
-    // Данные для дней
-    property var daysData: ({})
+    // Инициализация данных
+    Component.onCompleted: {
+        updatePregnancyProgress()
+    }
 
-    // Функция для получения данных дня
+    // Обновление данных о прогрессе беременности
+    function updatePregnancyProgress() {
+        var progress = pregnancyCalendarManager.loadPregnancyData()
+        if (progress) {
+            currentDay = progress.currentDay || 0
+            currentWeek = progress.currentWeek || 0
+        }
+    }
+
+    // Получение данных дня
     function getDayData(date) {
         var dateStr = Qt.formatDate(date, "yyyy-MM-dd")
-        if (!daysData[dateStr]) {
-            daysData[dateStr] = {
-                "weight": "Никогда не измерялось",
-                "pressure": "Никогда не измерялось",
-                "waist": "Никогда не измерялось",
-                "symptoms": [],
-                "mood": ""
-            }
+        var dayData = pregnancyCalendarManager.getDayData(dateStr) || {}
+
+        return {
+            "weight": dayData.weight || "Никогда не измерялось",
+            "pressure": dayData.pressure || "Никогда не измерялось",
+            "waist": dayData.waist || "Никогда не измерялось",
+            "symptoms": dayData.symptoms || [],
+            "mood": dayData.mood || ""
         }
-        return daysData[dateStr]
+    }
+
+    // Сохранение данных дня
+    function saveDayData(date, weight, pressure, waist, mood, symptoms) {
+        var dateStr = Qt.formatDate(date, "yyyy-MM-dd")
+        pregnancyCalendarManager.saveDayData(dateStr, weight, pressure,
+                                             waist, mood)
+        pregnancyCalendarManager.saveSymptoms(dateStr, symptoms)
     }
 
     Flickable {
@@ -130,7 +176,6 @@ Item {
                             color: "#4a148c"
                         }
 
-                        // Таблица календаря
                         GridLayout {
                             width: parent.width
                             columns: 7
@@ -163,9 +208,11 @@ Item {
                                         color: {
                                             if (!modelData)
                                                 return "transparent"
-                                            return modelData === Qt.formatDate(
-                                                        root.currentDate,
-                                                        "d") ? "#9c27b0" : hasNotes ? "#e1bee7" : "transparent"
+                                            var isToday = modelData === Qt.formatDate(
+                                                        root.currentDate, "d")
+                                                    && modelData === Qt.formatDate(
+                                                        new Date(), "d")
+                                            return isToday ? "#9c27b0" : hasNotes ? "#e1bee7" : "transparent"
                                         }
                                         border.color: "#9c27b0"
                                         border.width: modelData ? 1 : 0
@@ -175,7 +222,7 @@ Item {
                                             var year = root.currentDate.getFullYear()
                                             var month = Object.keys(
                                                         calendarData).indexOf(
-                                                        modelData) + 3 // Апрель=3
+                                                        modelData) + new Date().getMonth()
                                             return new Date(year, month,
                                                             modelData)
                                         }
@@ -200,13 +247,27 @@ Item {
                                             anchors.fill: parent
                                             onClicked: {
                                                 if (modelData) {
+                                                    var data = getDayData(
+                                                                dayRect.currentDate)
                                                     dayInfoPopup.selectedDate = dayRect.currentDate
-                                                    dayInfoPopup.weightValue = getDayData(
-                                                                dayRect.currentDate).weight
-                                                    dayInfoPopup.pressureValue = getDayData(
-                                                                dayRect.currentDate).pressure
-                                                    dayInfoPopup.waistValue = getDayData(
-                                                                dayRect.currentDate).waist
+                                                    dayInfoPopup.weightValue = data.weight.replace(
+                                                                " кг",
+                                                                "").replace(
+                                                                "Никогда не измерялось",
+                                                                "")
+                                                    dayInfoPopup.pressureValue
+                                                            = data.pressure.replace(
+                                                                " мм рт.ст.",
+                                                                "").replace(
+                                                                "Никогда не измерялось",
+                                                                "")
+                                                    dayInfoPopup.waistValue = data.waist.replace(
+                                                                " см",
+                                                                "").replace(
+                                                                "Никогда не измерялось",
+                                                                "")
+                                                    dayInfoPopup.moodValue = data.mood
+                                                    dayInfoPopup.symptomsModel = data.symptoms
                                                     dayInfoPopup.open()
                                                 }
                                             }
@@ -224,20 +285,14 @@ Item {
     // Попап с информацией о дне
     MyComponents.DayInfoPopup {
         id: dayInfoPopup
-
-        onWeightValueChanged: {
-            var dateStr = Qt.formatDate(selectedDate, "yyyy-MM-dd")
-            daysData[dateStr].weight = weightValue
-        }
-
-        onPressureValueChanged: {
-            var dateStr = Qt.formatDate(selectedDate, "yyyy-MM-dd")
-            daysData[dateStr].pressure = pressureValue
-        }
-
-        onWaistValueChanged: {
-            var dateStr = Qt.formatDate(selectedDate, "yyyy-MM-dd")
-            daysData[dateStr].waist = waistValue
+        onSaveClicked: function (data) {
+            pregnancyCalendarManager.saveDayData(Qt.formatDate(data.date,
+                                                               "yyyy-MM-dd"),
+                                                 data.weight, data.pressure,
+                                                 data.waist, data.mood)
+            pregnancyCalendarManager.saveSymptoms(Qt.formatDate(data.date,
+                                                                "yyyy-MM-dd"),
+                                                  data.symptoms)
         }
     }
 }

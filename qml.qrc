@@ -103,5 +103,17 @@
         <file>Images/icons/favorite_border.svg</file>
         <file>Images/icons/delete.svg</file>
         <file>Images/icons/arrow_right.svg</file>
+        <file>components/CustomDate.qml</file>
+        <file>components/SymptomsBlock.qml</file>
+        <file>components/SymptomItem.qml</file>
+        <file>components/MoodSelector.qml</file>
+        <file>components/IndicatorField.qml</file>
+        <file>components/IndicatorsBlock.qml</file>
+        <file>components/PopupHeader.qml</file>
+        <file>components/PrimaryButton.qml</file>
+        <file>components/SymptomDialog.qml</file>
+        <file>Style/Style.qml</file>
+        <file>components/CustomSlider.qml</file>
+        <file>components/CustomComboBoxStandart.qml</file>
     </qresource>
 </RCC>

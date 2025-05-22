@@ -1,11 +1,10 @@
-// components/CustomButton.qml
 import QtQuick
 import QtQuick.Effects
 
 Rectangle {
     id: root
     property alias text: buttonText.text
-    property color textColor: "white"
+    property color textColor: flat ? buttonColor : "white"
     property color buttonColor: "#9c27b0"
     property color pressedColor: Qt.darker(buttonColor, 1.2)
     property color hoverColor: Qt.lighter(buttonColor, 1.1)
@@ -14,6 +13,7 @@ Rectangle {
     property real shadowSize: 3
     property real shadowOpacity: 0.3
     property alias fontFamily: buttonText.font.family
+    property bool flat: false // Новое свойство flat
 
     signal clicked
     signal pressed
@@ -22,11 +22,14 @@ Rectangle {
     implicitWidth: Math.max(100, buttonText.implicitWidth + 40)
     implicitHeight: 50
     radius: height / 2
-    color: internal.down ? pressedColor : (internal.containsMouse ? hoverColor : buttonColor)
+    color: flat ? "transparent" : (internal.down ? pressedColor : (internal.containsMouse ? hoverColor : buttonColor))
+    border.color: flat ? buttonColor : "transparent"
+    border.width: flat ? 1 : 0
 
-    layer.enabled: true
+    // Эффекты включаем только для не-flat кнопок
+    layer.enabled: !flat
     layer.effect: MultiEffect {
-        shadowEnabled: true
+        shadowEnabled: !flat && shadowSize > 0
         shadowColor: Qt.rgba(0, 0, 0, shadowOpacity)
         shadowVerticalOffset: shadowSize
         shadowBlur: 0.5
@@ -143,6 +146,14 @@ Rectangle {
     }
 
     Behavior on color {
+        enabled: !flat // Отключаем анимацию цвета для flat кнопок
+        ColorAnimation {
+            duration: 200
+        }
+    }
+
+    Behavior on border.color {
+        enabled: flat // Анимация только для flat кнопок
         ColorAnimation {
             duration: 200
         }

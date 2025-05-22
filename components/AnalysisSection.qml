@@ -44,36 +44,53 @@ Column {
 
     // Список показателей
     Repeater {
-        model: Object.keys(dataModel)
+        model: {
+            if (!dataModel)
+                return []
+            return Object.keys(dataModel).filter(key => {
+                                                     return dataModel[key] !== undefined
+                                                     && dataModel[key].value !== undefined
+                                                 })
+        }
 
         delegate: AnalysisItemDelegate {
             width: root.width
             height: root.itemHeight
             radius: root.itemRadius
-            parameterData: dataModel[modelData]
+            parameterData: {
+                var data = dataModel[modelData]
+                // Добавляем имя параметра в данные
+                if (data) {
+                    data.name = modelData
+                    return data
+                }
+                return {}
+            }
             parameterName: getParameterName(modelData)
             showTrend: true
             onClicked: {
-                console.log("Выбран параметр:", modelData)
-                // Можно добавить дополнительную логику
+                root.showDetailsRequested(parameterData, parameterName)
             }
         }
     }
 
     // Вспомогательные функции
-    function getParameterName(key) {
+    function getParameterName(fullKey) {
+        // Извлекаем имя параметра из ключа (формат "name_date_id")
+        var paramKey = fullKey.split('_')[0]
+
         const names = {
-            "hemoglobin": qsTr("Гемоглобин"),
-            "glucose": qsTr("Глюкоза"),
-            "protein": qsTr("Белок"),
-            "bpd": qsTr("БПР (бипариетальный размер)"),
-            "fl": qsTr("Длина бедра"),
-            "hc": qsTr("Окружность головы"),
-            "ac": qsTr("Окружность живота"),
-            "wbc": qsTr("Лейкоциты"),
-            "rbc": qsTr("Эритроциты")
+            "hgb": "Гемоглобин",
+            "hemoglobin": "Гемоглобин",
+            "wbc": "Лейкоциты",
+            "glu": "Глюкоза",
+            "glucose": "Глюкоза",
+            "pro": "Белок",
+            "protein": "Белок",
+            "bpd": "Бипариетальный размер",
+            "fl": "Длина бедренной кости"
         }
-        return names[key] || key
+        return names[paramKey.toLowerCase()] || paramKey
     }
 
     // Вложенный компонент для элемента анализа

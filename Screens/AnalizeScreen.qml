@@ -2,72 +2,56 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import "../components" as MyComponents
+import PregnancyApp 1.0
 
 Item {
     id: root
     width: parent.width * 0.98
     height: parent.height
+    AnalysisManager {
+        id: analysisManager
 
-    // 1. Расширенная модель данных
-    readonly property var analysisData: {
-        "blood": {
-            "hemoglobin": {
-                "value": 125,
-                "min": 110,
-                "max": 140,
-                "unit": "г/л",
-                "trend": "stable"
-            },
-            "glucose": {
-                "value": 4.8,
-                "min": 3.3,
-                "max": 5.5,
-                "unit": "ммоль/л",
-                "trend": "decreasing"
-            },
-            "wbc": {
-                "value": 8.2,
-                "min": 4.0,
-                "max": 9.0,
-                "unit": "×10⁹/л",
-                "trend": "increasing"
+        onAnalysisDataChanged: {
+            console.log("Analysis data changed:",
+                        JSON.stringify(analysisData, null, 2))
+            if (analysisData && Object.keys(analysisData).length > 0) {
+                console.log("First category:", Object.keys(analysisData)[0])
+                var firstCategory = analysisData[Object.keys(analysisData)[0]]
+                if (firstCategory) {
+                    var firstParam = Object.keys(firstCategory)[0]
+                    console.log("First parameter in category:",
+                                firstParam, "Data:",
+                                JSON.stringify(firstCategory[firstParam], null,
+                                               2))
+                }
             }
-        },
-        "urine": {
-            "protein": {
-                "value": 0.1,
-                "max": 0.3,
-                "unit": "г/л",
-                "trend": "stable"
-            },
-            "leukocytes": {
-                "value": 1,
-                "max": 5,
-                "unit": "в поле зрения"
+            console.log("Formatted analysis data:",
+                        JSON.stringify(analysisData, null, 2))
+            if (analysisData) {
+                console.log("Available categories:", Object.keys(analysisData))
             }
-        },
-        "ultrasound": {
-            "bpd": {
-                "value": 24,
-                "min": 21,
-                "max": 27,
-                "unit": "мм",
-                "gestational_age": "12 недель"
-            },
-            "fl": {
-                "value": 9,
-                "min": 8,
-                "max": 11,
-                "unit": "мм"
-            }
+        }
+
+        Component.onCompleted: {
+            console.log("Initial data:",
+                        JSON.stringify(analysisManager.analysisData, null, 2))
         }
     }
 
-    // 2. Фильтрация и поиск
+    // Динамические данные из базы
+    property var analysisData: analysisManager.getFormattedAnalysisData()
+
+    // Фильтрация и поиск
     property string searchQuery: ""
     property var filteredData: {
+        if (!analysisData)
+            return {}
+
         let result = {}
         for (const category in analysisData) {
+            if (!analysisData[category])
+                continue
+
             result[category] = {}
             for (const param in analysisData[category]) {
                 const name = getParameterName(param).toLowerCase()
@@ -84,18 +68,46 @@ Item {
     property bool showDetails: false
     property var currentDetails: ({})
 
-    // 4. Функции преобразования данных
-    function getParameterName(key) {
+    function getCategoryName(categoryKey) {
         const names = {
+            "blood": "Биохимия крови",
+            "urine": "Анализ мочи",
+            "ultrasound": "УЗИ показатели",
+            "Кровь": "Биохимия крови",
+            "Моча": "Анализ мочи",
+            "УЗИ": "УЗИ показатели"
+        }
+        return names[categoryKey] || categoryKey
+    }
+
+    property var categoryColors: {
+        "blood": "#fff0f0",
+        "urine": "#f0fff0",
+        "ultrasound": "#f0f8ff",
+        "Кровь": "#fff0f0",
+        "Моча"// Добавлено для русских ключей
+        : "#f0fff0",
+        "УЗИ"// Добавлено для русских ключей
+        : "#f0f8ff" // Добавлено для русских ключей
+    }
+
+    // 4. Функции преобразования данных
+    function getParameterName(fullKey) {
+        // Извлекаем имя параметра из ключа (формат "name_date_id")
+        var paramKey = fullKey.split('_')[0]
+
+        const names = {
+            "hgb": "Гемоглобин",
             "hemoglobin": "Гемоглобин",
-            "glucose": "Глюкоза",
             "wbc": "Лейкоциты",
+            "glu": "Глюкоза",
+            "glucose": "Глюкоза",
+            "pro": "Белок",
             "protein": "Белок",
-            "leukocytes": "Лейкоциты",
             "bpd": "Бипариетальный размер",
             "fl": "Длина бедренной кости"
         }
-        return names[key] || key
+        return names[paramKey.toLowerCase()] || paramKey
     }
 
     function getTrendIcon(trend) {
@@ -165,28 +177,31 @@ Item {
                     spacing: 20
 
                     Repeater {
-                        model: Object.keys(filteredData[selectedCategory] || {})
+                        model: {
+                            if (!filteredData
+                                    || !filteredData[selectedCategory])
+                                return []
+                            var categoryData = filteredData[selectedCategory]
+                            return Object.keys(categoryData).map(key => {
+                                                                     return {
+                                                                         "paramKey": key.split(
+                                                                                         '_')[0],
+                                                                         "data"// Извлекаем оригинальное имя параметра
+                                                                         : categoryData[key]
+                                                                     }
+                                                                 })
+                        }
 
-                        MyComponents.AnalysisSection {
-                            width: contentColumn.width - 20 // Добавляем отступы
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            title: "Биохимия крови"
+                        delegate: MyComponents.AnalysisSection {
+                            width: contentColumn.width - 20
+                            title: getCategoryName(selectedCategory)
                             dataModel: {
-                                "glucose": {
-                                    "value": 5.1,
-                                    "min": 3.9,
-                                    "max": 6.1,
-                                    "unit": "ммоль/л",
-                                    "trend": "stable"
-                                },
-                                "creatinine": {
-                                    "value": 78,
-                                    "min": 50,
-                                    "max": 90,
-                                    "unit": "мкмоль/л"
-                                }
+                                var result = {}
+                                result[modelData.paramKey] = modelData.data
+                                return result
                             }
-                            backgroundColor: "#f0f8ff"
+                            backgroundColor: categoryColors[selectedCategory]
+                                             || "#f0f8ff"
                             itemHeight: 80
                             onShowDetailsRequested: {
                                 parameterDetailsPopup.parameterData = parameterData
@@ -218,98 +233,6 @@ Item {
                 Layout.preferredHeight: 50
                 onClicked: addAnalysisDialog.open()
             }
-
-            MyComponents.CustomButton {
-                text: "История"
-                Layout.fillWidth: true
-                Layout.preferredHeight: 50
-                onClicked: historyPopup.open()
-            }
-        }
-    }
-
-    // 6. Детализация показателя
-    Popup {
-        id: detailsPopup
-        width: parent.width * 0.9
-        height: parent.height * 0.7
-        anchors.centerIn: parent
-        modal: true
-        visible: showDetails
-
-        ColumnLayout {
-            width: parent.width
-            spacing: 15
-
-            Label {
-                text: currentDetails.name || ""
-                font.bold: true
-                font.pixelSize: 20
-                Layout.alignment: Qt.AlignHCenter
-            }
-
-            GridLayout {
-                columns: 2
-                columnSpacing: 20
-                rowSpacing: 10
-                Layout.fillWidth: true
-
-                Label {
-                    text: "Текущее значение:"
-                    font.bold: true
-                }
-                Label {
-                    text: currentDetails.value + " " + currentDetails.unit
-                }
-
-                Label {
-                    text: "Референсные значения:"
-                    font.bold: true
-                }
-                Label {
-                    text: (currentDetails.min !== undefined ? currentDetails.min + "-" : "")
-                          + (currentDetails.max || "")
-                }
-
-                Label {
-                    text: "Тренд:"
-                    font.bold: true
-                }
-                Label {
-                    text: getTrendIcon(currentDetails.trend)
-                }
-
-                Label {
-                    text: "Рекомендации:"
-                    font.bold: true
-                }
-                Label {
-                    text: getRecommendations(currentDetails)
-                    wrapMode: Text.WordWrap
-                    Layout.maximumWidth: parent.width * 0.7
-                }
-            }
-
-            Button {
-                text: "Закрыть"
-                Layout.alignment: Qt.AlignHCenter
-                onClicked: showDetails = false
-            }
-        }
-
-        function getRecommendations(details) {
-            if (!details.value)
-                return "Нет данных для рекомендаций"
-
-            if (details.min !== undefined && details.value < details.min) {
-                return "• Увеличьте потребление железосодержащих продуктов\n• Проконсультируйтесь с врачом"
-            }
-
-            if (details.max !== undefined && details.value > details.max) {
-                return "• Соблюдайте диету\n• Пройдите дополнительные обследования"
-            }
-
-            return "Показатель в норме. Продолжайте текущий режим."
         }
     }
 
@@ -318,17 +241,29 @@ Item {
     // В корневом Item добавьте:
     MyComponents.AddAnalysisDialog {
         id: addAnalysisDialog
+        analysisManager: analysisManager
         anchors.centerIn: parent
-        onAnalysisAdded: function (category, parameter, value, testDate) {
-            console.log("Добавлен анализ:", category, parameter,
-                        value, testDate)
-            // Здесь логика добавления в историю и обновления данных
+
+        onAnalysisAdded: function (typeId, value, testDate, notes, laboratory, isFasting) {
+            if (analysisManager.addAnalysis(typeId, value, testDate, notes,
+                                            laboratory, isFasting)) {
+                console.log("Анализ успешно добавлен")
+            } else {
+                console.log("Ошибка при добавлении анализа")
+            }
         }
     }
 
     MyComponents.HistoryPopup {
         id: historyPopup
         anchors.centerIn: parent
-        parameterName: "История показаний"
+        parameterName: "Гемоглобин"
+        parameterUnit: "г/л"
+
+        onRequestHistory: function (typeId) {
+            // Запросить данные из базы
+            var history = analysisManager.getAnalysisHistory(typeId)
+            historyPopup.historyModel = history
+        }
     }
 }

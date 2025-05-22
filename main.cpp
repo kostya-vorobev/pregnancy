@@ -1,5 +1,6 @@
 // main.cpp
 #include <QGuiApplication>
+#include <QApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QFontDatabase>
@@ -15,12 +16,14 @@
 #include "Classes/weightmanager.h"
 #include "Classes/fetalkickmanager.h"
 #include "Classes/dietmanager.h"
+#include "Classes/analysismanager.h"
+#include "Classes/pregnancycalendarmanager.h"
 
 int main(int argc, char *argv[])
 {
     QFontDatabase::addApplicationFont(":/fonts/Comfortaa-VariableFont_wght.ttf");
 
-    QGuiApplication app(argc, argv);
+    QApplication app(argc, argv);
 
 
     // Инициализация базы данных
@@ -43,6 +46,8 @@ int main(int argc, char *argv[])
     qmlRegisterType<WeightManager>("PregnancyApp", 1, 0, "WeightManager");
     qmlRegisterType<FetalKickManager>("PregnancyApp", 1, 0, "FetalKickManager");
     qmlRegisterType<DietManager>("PregnancyApp", 1, 0, "DietManager");
+    qmlRegisterType<AnalysisManager>("PregnancyApp", 1, 0, "AnalysisManager");
+    qmlRegisterType<PregnancyCalendarManager>("PregnancyApp", 1, 0, "PregnancyCalendarManager");
 
     QQmlApplicationEngine engine;
 
@@ -52,6 +57,8 @@ int main(int argc, char *argv[])
         engine.rootContext()->setContextProperty("currentProfile", profile);
 
     }
+    PregnancyCalendarManager pregnancyCalendarManager;
+    engine.rootContext()->setContextProperty("pregnancyCalendarManager", &pregnancyCalendarManager);
 
 
     engine.load(QUrl(QStringLiteral("qrc:/main.qml")));

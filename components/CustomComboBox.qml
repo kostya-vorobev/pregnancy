@@ -8,10 +8,18 @@ Item {
     height: 50
 
     property alias model: listView.model
-    property int currentIndex: 0
+    property string textRole: "" // Добавляем поддержку textRole
+    property int currentIndex: -1
     property alias currentText: displayText.text
     property int fontSize: 16
     signal activated(int index)
+
+    // Функция для получения текста из модели
+    function getDisplayText(item) {
+        if (textRole === "" || typeof item !== "object")
+            return item
+        return item[textRole] || ""
+    }
 
     // Основной прямоугольник комбобокса
     Rectangle {
@@ -24,8 +32,14 @@ Item {
 
         Text {
             id: displayText
-            text: model
-                  && model.length > currentIndex ? model[currentIndex] : ""
+            text: {
+                if (currentIndex < 0)
+                    return ""
+                if (model && model.length > currentIndex) {
+                    return getDisplayText(model[currentIndex])
+                }
+                return ""
+            }
             font {
                 family: "Comfortaa"
                 pixelSize: fontSize
@@ -38,7 +52,7 @@ Item {
             }
         }
 
-        // Новая улучшенная стрелка индикатора
+        // Стрелка индикатора
         Rectangle {
             id: arrowContainer
             width: 24
@@ -51,7 +65,6 @@ Item {
                 margins: 12
             }
 
-            // SVG стрелка с цветовой настройкой
             Image {
                 id: arrowIcon
                 source: "qrc:/Images/svg/arrow_down.svg"
@@ -96,7 +109,7 @@ Item {
         }
     }
 
-    // Выпадающий список (используем Popup)
+    // Выпадающий список
     Popup {
         id: popup
         y: mainRect.height + 5
@@ -129,11 +142,11 @@ Item {
                 width: listView.width
                 height: 40
                 radius: 4
-                color: listView.currentIndex
+                color: root.currentIndex
                        === index ? "#e1bee7" : mouseArea.containsMouse ? "#f3e5f5" : "transparent"
 
                 Text {
-                    text: modelData
+                    text: getDisplayText(modelData)
                     font {
                         family: "Comfortaa"
                         pixelSize: root.fontSize
@@ -148,7 +161,6 @@ Item {
                     hoverEnabled: true
                     onClicked: {
                         root.currentIndex = index
-                        displayText.text = modelData
                         root.activated(index)
                         popup.close()
                     }
