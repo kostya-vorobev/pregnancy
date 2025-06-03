@@ -1,6 +1,8 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Dialogs
+import Qt5Compat.GraphicalEffects
 import "../components" as MyComponents
 import PregnancyApp 1.0
 
@@ -24,6 +26,16 @@ Item {
             console.log("Данные профиля загружены")
             pregnancyProgressData.loadData()
         }
+        onProfilePhotoChanged: {
+            if (profilePhoto) {
+                avatarImage.source = profilePhoto
+                if (profilePhoto.toString().startsWith("file:")) {
+                    userAvatar = profilePhoto
+                } else {
+                    userAvatar = "file:" + profilePhoto
+                }
+            }
+        }
     }
 
     PregnancyProgress {
@@ -42,15 +54,30 @@ Item {
         profileData.loadData()
     }
 
+    FileDialog {
+        id: fileDialog
+        title: "Выберите изображение профиля"
+        currentFolder: StandardPaths.standardLocations(
+                           StandardPaths.PicturesLocation)[0]
+        nameFilters: ["Изображения (*.png *.jpg *.jpeg)"]
+        onAccepted: {
+            // Используйте прямое присваивание свойства вместо вызова метода
+            profileData.profilePhoto = selectedFile
+            profileData.save()
+        }
+    }
     function updateUI() {
         // Обновляем все поля интерфейса при загрузке данных
         userName = profileData.lastName + " " + profileData.firstName
         if (profileData.middleName.length > 0)
             userName += " " + profileData.middleName
-        userAvatar = "qrc:/Image/Avatar/" + profileData.profilePhoto
+        userAvatar = profileData.profilePhoto
         birthDateField.text = profileData.dateBirth ? Qt.formatDate(
                                                           profileData.dateBirth,
                                                           "dd.MM.yyyy") : ""
+        dueDateField.text = pregnancyProgressData.estimatedDueDate ? Qt.formatDate(
+                                                                         pregnancyProgressData.estimatedDueDate,
+                                                                         "dd.MM.yyyy") : ""
         heightField.text = profileData.height > 0 ? profileData.height : 0
         weightBeforeField.text = profileData.weight.toFixed(
                     1) > 0 ? profileData.weight.toFixed(1) : 0
@@ -167,12 +194,34 @@ Item {
                     anchors.horizontalCenter: parent.horizontalCenter
                     color: "white"
 
+                    Rectangle {
+                        id: mask
+                        width: parent.width
+                        height: parent.height
+                        radius: width / 2
+                        visible: false // Маска не должна быть видима сама по себе
+                    }
+
+                    // Исходное изображение
                     Image {
                         id: avatarImage
+                        asynchronous: true
                         anchors.fill: parent
                         source: userAvatar
                         fillMode: Image.PreserveAspectCrop
-                        layer.enabled: true
+                        visible: false // Скрываем оригинальное изображение, так как будем использовать маскированную версию
+                        onStatusChanged: {
+                            if (status === Image.Error) {
+                                source = "qrc:/Images/avatar/default-avatar.png"
+                            }
+                        }
+                    }
+
+                    // Применяем маску к изображению
+                    OpacityMask {
+                        anchors.fill: parent
+                        source: avatarImage
+                        maskSource: mask
                     }
 
                     Rectangle {
@@ -191,7 +240,7 @@ Item {
                         anchors.bottom: parent.bottom
                         text: "+"
                         radius: 15
-                        onClicked: console.log("Изменить фото")
+                        onClicked: fileDialog.open()
                     }
                 }
 
@@ -265,7 +314,7 @@ Item {
                     MyComponents.CustomTextField {
                         id: pregnancyWeekField
                         width: parent.width
-                        placeholderText: "Введите текущую неделю"
+                        placeholderTextValue: "Введите текущую неделю"
                         text: "12"
                         inputMethodHints: Qt.ImhDigitsOnly
                         visible: editMode
@@ -301,7 +350,7 @@ Item {
                     MyComponents.CustomTextField {
                         id: dueDateField
                         width: parent.width
-                        placeholderText: "ДД.ММ.ГГГГ"
+                        placeholderTextValue: "ДД.ММ.ГГГГ"
                         text: "15.12.2023"
                         readOnly: !editMode
                         visible: editMode
@@ -360,7 +409,7 @@ Item {
                     MyComponents.CustomTextField {
                         id: birthDateField
                         width: parent.width
-                        placeholderText: "ДД.ММ.ГГГГ"
+                        placeholderTextValue: "ДД.ММ.ГГГГ"
                         text: ""
                         readOnly: !editMode
                         visible: editMode
@@ -399,7 +448,7 @@ Item {
                     MyComponents.CustomTextField {
                         id: heightField
                         width: parent.width
-                        placeholderText: "Введите ваш рост"
+                        placeholderTextValue: "Введите ваш рост"
                         text: "165"
                         inputMethodHints: Qt.ImhDigitsOnly
                         readOnly: !editMode
@@ -435,7 +484,7 @@ Item {
                     MyComponents.CustomTextField {
                         id: weightBeforeField
                         width: parent.width
-                        placeholderText: "Введите ваш вес"
+                        placeholderTextValue: "Введите ваш вес"
                         text: "58"
                         inputMethodHints: Qt.ImhDigitsOnly
                         readOnly: !editMode
@@ -469,7 +518,7 @@ Item {
                     MyComponents.CustomTextField {
                         id: bloodTypeField
                         width: parent.width
-                        placeholderText: "Введите вашу группу крови"
+                        placeholderTextValue: "Введите вашу группу крови"
                         text: "58"
                         inputMethodHints: Qt.ImhDigitsOnly
                         readOnly: !editMode
@@ -508,7 +557,9 @@ Item {
                     text: "Настройки уведомлений"
                     textColor: textColor
                     onClicked: stackView.push(
-                                   "qrc:/Screens/NotificationSettings.qml")
+                                   "qrc:/Screens/NotificationSettings.qml", {
+                                       "notificationManager": notificationManager
+                                   })
                 }
 
                 MyComponents.CustomButton {

@@ -14,12 +14,13 @@ class PregnancyProgress : public QObject
     Q_PROPERTY(int currentWeek READ currentWeek WRITE setCurrentWeek NOTIFY currentWeekChanged)
     Q_PROPERTY(QDate lastUpdated READ lastUpdated WRITE setLastUpdated NOTIFY lastUpdatedChanged)
     Q_PROPERTY(bool isValid READ isValid NOTIFY validityChanged)
+    Q_PROPERTY(QDate estimatedDueDate READ estimatedDueDate NOTIFY estimatedDueDateChanged)
 
 public:
     Q_INVOKABLE bool loadData();
     explicit PregnancyProgress(QObject *parent = nullptr);
     PregnancyProgress(int id, int profileId, const QDate &startDate,
-                      int currentWeek, const QDate &lastUpdated,
+                      int currentWeek, const QDate &lastUpdated, const QDate &estimatedDueDate,
                       QObject *parent = nullptr);
 
     bool isValid() const { return m_profileId > 0 && m_startDate.isValid(); }
@@ -30,6 +31,7 @@ public:
     QDate startDate() const;
     int currentWeek() const;
     QDate lastUpdated() const;
+    QDate estimatedDueDate() const;
 
     // Setters
     void setId(int profileId);
@@ -48,6 +50,8 @@ public:
     bool updateLastUpdated();
 
     // Helper methods
+    Q_INVOKABLE void calculateStartDateFromWeek(int week);
+    QDate calculateDueDate() const;
     Q_INVOKABLE int calculateCurrentWeek() const;
     Q_INVOKABLE bool isDataValid() const;
 
@@ -59,6 +63,7 @@ signals:
     void lastUpdatedChanged();
     void validityChanged();
     void dataLoaded();
+    void estimatedDueDateChanged();
 
 private:
     int m_id;
@@ -66,6 +71,7 @@ private:
     QDate m_startDate;
     int m_currentWeek;
     QDate m_lastUpdated;
+    QDate m_estimatedDueDate;
 };
 
 #endif // PREGNANCYPROGRESS_H

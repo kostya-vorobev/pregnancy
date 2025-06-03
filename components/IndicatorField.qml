@@ -23,7 +23,7 @@ Column {
         id: field
         width: parent.width
         text: root.value
-        placeholderText: root.placeholder
+        placeholderTextValue: root.placeholder
         font.pixelSize: 16
         validator: root.validator
         onTextChanged: root.valueChanged(text)

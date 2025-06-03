@@ -4,7 +4,9 @@
 
 #include <QObject>
 #include <QDate>
-
+#include <QFile>
+#include <QFileInfo>
+#include <QStandardPaths>
 
 class Profile : public QObject
 {
@@ -51,7 +53,7 @@ public:
     void setHeight(int height);
     void setWeight(double weight);
     void setBloodType(const QString &bloodType);
-    void setProfilePhoto(const QString &profilePhoto);
+    Q_INVOKABLE void setProfilePhoto(const QString &profilePhoto);
     void setId(int id);
 
     Q_INVOKABLE bool loadData();
@@ -62,6 +64,7 @@ public:
     static QList<Profile*> getAllProfiles();
     //bool save();
     bool remove();
+    Q_INVOKABLE bool copyProfilePhoto(const QString &sourcePath);
 
 
 signals:

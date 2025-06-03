@@ -70,7 +70,7 @@ Page {
         MyComponents.CustomTextField {
             id: searchField
             Layout.fillWidth: true
-            placeholderText: "Поиск диет..."
+            placeholderTextValue: "Поиск диет..."
             onTextChanged: {
                 var searchText = text.toLowerCase()
                 if (searchText === "") {

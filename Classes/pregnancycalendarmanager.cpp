@@ -12,11 +12,12 @@ QVariantList PregnancyCalendarManager::getAvailableSymptoms()
     QVariantList symptoms;
     QSqlQuery query(m_dbManager.database());
 
-    if (query.exec("SELECT id, name FROM Symptoms")) {
+    if (query.exec("SELECT id, name, category FROM Symptoms")) {
         while (query.next()) {
             QVariantMap symptom;
             symptom["id"] = query.value("id").toInt();
             symptom["name"] = query.value("name").toString();
+            symptom["category"] = query.value("category").toString();
             symptoms.append(symptom);
         }
     } else {
@@ -32,30 +33,57 @@ void PregnancyCalendarManager::saveSymptoms(const QString &date, const QVariantL
     db.transaction();
 
     try {
-        // Сначала удаляем все симптомы для этой даты
-        QSqlQuery deleteQuery(db);
-        deleteQuery.prepare("DELETE FROM DaySymptoms WHERE date = ?");
-        deleteQuery.addBindValue(date);
-        deleteQuery.exec();
+        // First get or create the daily record to get its ID
+        int dayId = -1;
+        QSqlQuery checkDayQuery(db);
+        checkDayQuery.prepare("SELECT id FROM DailyRecords WHERE date = ?");
+        checkDayQuery.addBindValue(date);
 
-        // Затем добавляем новые
+        if (checkDayQuery.exec() && checkDayQuery.next()) {
+            dayId = checkDayQuery.value("id").toInt();
+        } else {
+            // Create a new daily record if it doesn't exist
+            QSqlQuery insertDayQuery(db);
+            insertDayQuery.prepare("INSERT INTO DailyRecords (date) VALUES (?)");
+            insertDayQuery.addBindValue(date);
+            if (insertDayQuery.exec()) {
+                dayId = insertDayQuery.lastInsertId().toInt();
+            } else {
+                throw std::runtime_error("Failed to create daily record");
+            }
+        }
+
+        // Delete existing symptoms for this day
+        QSqlQuery deleteQuery(db);
+        deleteQuery.prepare("DELETE FROM DaySymptoms WHERE dayId = ?");
+        deleteQuery.addBindValue(dayId);
+        if (!deleteQuery.exec()) {
+            throw std::runtime_error("Failed to delete existing symptoms");
+        }
+
+        // Insert new symptoms
         QSqlQuery insertQuery(db);
-        insertQuery.prepare("INSERT INTO DaySymptoms (date, symptomId, severity) VALUES (?, ?, ?)");
+        insertQuery.prepare("INSERT INTO DaySymptoms (dayId, symptomId, severity, notes) "
+                            "VALUES (?, ?, ?, ?)");
 
         for (const QVariant &item : symptoms) {
             QVariantMap symptom = item.toMap();
-            if (symptom["severity"].toInt() > 0) {
-                insertQuery.addBindValue(date);
+            int severity = symptom["severity"].toInt();
+            if (severity > 0) {  // Only save symptoms with severity > 0
+                insertQuery.addBindValue(dayId);
                 insertQuery.addBindValue(symptom["id"].toInt());
-                insertQuery.addBindValue(symptom["severity"].toInt());
-                insertQuery.exec();
+                insertQuery.addBindValue(severity);
+                insertQuery.addBindValue(symptom["notes"].toString());
+                if (!insertQuery.exec()) {
+                    qWarning() << "Failed to insert symptom:" << insertQuery.lastError().text();
+                }
             }
         }
 
         db.commit();
-    } catch (...) {
+    } catch (const std::exception &e) {
         db.rollback();
-        qWarning() << "Failed to save symptoms, transaction rolled back";
+        qWarning() << "Failed to save symptoms:" << e.what();
     }
 }
 
@@ -88,12 +116,13 @@ QVariantMap PregnancyCalendarManager::getDayData(const QString &date)
     dayData["pressure"] = "Никогда не измерялось";
     dayData["waist"] = "Никогда не измерялось";
     dayData["mood"] = "";
+    dayData["notes"] = "";
     dayData["symptoms"] = QVariantList();
 
     QSqlQuery query(m_dbManager.database());
 
-    // Получаем данные из PregnancyCalendar
-    query.prepare("SELECT * FROM PregnancyCalendar WHERE date = ?");
+    // Get basic day data
+    query.prepare("SELECT * FROM DailyRecords WHERE date = ?");
     query.addBindValue(date);
     if (query.exec() && query.next()) {
         if (!query.value("weight").isNull()) {
@@ -110,32 +139,38 @@ QVariantMap PregnancyCalendarManager::getDayData(const QString &date)
         if (!query.value("mood").isNull()) {
             dayData["mood"] = query.value("mood").toString();
         }
+        if (!query.value("notes").isNull()) {
+            dayData["notes"] = query.value("notes").toString();
+        }
     }
 
-    // Получаем симптомы за день (используем новую переменную query2)
-    QSqlQuery query2(m_dbManager.database());
-    query2.prepare("SELECT s.id, s.name, ds.severity FROM DaySymptoms ds "
-                   "JOIN Symptoms s ON ds.symptomId = s.id WHERE ds.date = ?");
-    query2.addBindValue(date);
-
+    // Get symptoms for the day
     QVariantList symptoms;
-    if (query2.exec()) {
-        while (query2.next()) {
+    QSqlQuery symptomQuery(m_dbManager.database());
+    symptomQuery.prepare("SELECT s.id, s.name, ds.severity, ds.notes "
+                         "FROM DaySymptoms ds "
+                         "JOIN Symptoms s ON ds.symptomId = s.id "
+                         "JOIN DailyRecords dr ON ds.dayId = dr.id "
+                         "WHERE dr.date = ?");
+    symptomQuery.addBindValue(date);
+
+    if (symptomQuery.exec()) {
+        while (symptomQuery.next()) {
             QVariantMap symptom;
-            symptom["id"] = query2.value("id").toInt();
-            symptom["name"] = query2.value("name").toString();
-            symptom["severity"] = query2.value("severity").toInt();
+            symptom["id"] = symptomQuery.value("id").toInt();
+            symptom["name"] = symptomQuery.value("name").toString();
+            symptom["severity"] = symptomQuery.value("severity").toInt();
+            symptom["notes"] = symptomQuery.value("notes").toString();
             symptoms.append(symptom);
         }
     }
 
-    // Получаем все доступные симптомы
+    // Get all available symptoms and merge with selected ones
     QVariantList allSymptoms = getAvailableSymptoms();
-    for (const QVariant &item : allSymptoms) {
+    for (QVariant &item : allSymptoms) {
         QVariantMap symptom = item.toMap();
         bool found = false;
 
-        // Проверяем, есть ли этот симптом в выбранных
         for (const QVariant &selectedItem : symptoms) {
             if (selectedItem.toMap()["id"] == symptom["id"]) {
                 found = true;
@@ -144,83 +179,96 @@ QVariantMap PregnancyCalendarManager::getDayData(const QString &date)
         }
 
         if (!found) {
-            symptom["severity"] = 0; // симптом не выбран
+            symptom["severity"] = 0;
+            symptom["notes"] = "";
             symptoms.append(symptom);
         }
     }
 
     dayData["symptoms"] = symptoms;
+
+    // Get daily plans
+    QVariantList plans;
+    QSqlQuery planQuery(m_dbManager.database());
+    planQuery.prepare("SELECT DailyPlans.id, planType, description, time, isCompleted "
+                      "FROM DailyPlans "
+                      "JOIN DailyRecords ON DailyPlans.dayId = DailyRecords.id "
+                      "WHERE DailyRecords.date = ?");
+    planQuery.addBindValue(date);
+
+    if (planQuery.exec()) {
+        while (planQuery.next()) {
+            QVariantMap plan;
+            plan["id"] = planQuery.value("id").toInt();
+            plan["planType"] = planQuery.value("planType").toString();
+            plan["description"] = planQuery.value("description").toString();
+            plan["time"] = planQuery.value("time").toString();
+            plan["isCompleted"] = planQuery.value("isCompleted").toBool();
+            plans.append(plan);
+            qDebug() << "Loaded plan:" << plan;
+        }
+    } else {
+        qWarning() << "Failed to load plans:" << planQuery.lastError().text();
+    }
+
+    dayData["plans"] = plans;
     return dayData;
 }
 
+
 void PregnancyCalendarManager::saveDayData(const QString &date, const QString &weight,
                                            const QString &pressure, const QString &waist,
-                                           const QString &mood)
+                                           const QString &mood, const QString &notes)
 {
     QSqlDatabase db = m_dbManager.database();
     db.transaction();
 
     try {
-        // Разбираем давление
+        // Parse pressure
         QStringList pressureParts = pressure.split("/");
         int systolic = pressureParts.size() > 0 ? pressureParts[0].toInt() : 0;
         int diastolic = pressureParts.size() > 1 ? pressureParts[1].toInt() : 0;
 
-        // Проверяем существование записи
+        // Check if record exists
         QSqlQuery checkQuery(db);
-        checkQuery.prepare("SELECT 1 FROM PregnancyCalendar WHERE date = ?");
+        checkQuery.prepare("SELECT id FROM DailyRecords WHERE date = ?");
         checkQuery.addBindValue(date);
         checkQuery.exec();
 
         if (checkQuery.next()) {
-            // Обновляем существующую запись
+            // Update existing record
             QSqlQuery updateQuery(db);
-            updateQuery.prepare("UPDATE PregnancyCalendar SET weight = ?, systolicPressure = ?, "
-                                "diastolicPressure = ?, waistCircumference = ?, mood = ? WHERE date = ?");
-            updateQuery.addBindValue(weight.toDouble());
-            updateQuery.addBindValue(systolic);
-            updateQuery.addBindValue(diastolic);
-            updateQuery.addBindValue(waist.toDouble());
-            updateQuery.addBindValue(mood);
+            updateQuery.prepare("UPDATE DailyRecords SET "
+                                "weight = ?, "
+                                "systolicPressure = ?, "
+                                "diastolicPressure = ?, "
+                                "waistCircumference = ?, "
+                                "mood = ?, "
+                                "notes = ? "
+                                "WHERE date = ?");
+            updateQuery.addBindValue(weight.isEmpty() ? QVariant() : weight.toDouble());
+            updateQuery.addBindValue(systolic > 0 ? systolic : QVariant());
+            updateQuery.addBindValue(diastolic > 0 ? diastolic : QVariant());
+            updateQuery.addBindValue(waist.isEmpty() ? QVariant() : waist.toDouble());
+            updateQuery.addBindValue(mood.isEmpty() ? QVariant() : mood);
+            updateQuery.addBindValue(notes.isEmpty() ? QVariant() : notes);
             updateQuery.addBindValue(date);
             updateQuery.exec();
         } else {
-            // Создаем новую запись
+            // Create new record
             QSqlQuery insertQuery(db);
-            insertQuery.prepare("INSERT INTO PregnancyCalendar (date, weight, systolicPressure, "
-                                "diastolicPressure, waistCircumference, mood) "
-                                "VALUES (?, ?, ?, ?, ?, ?)");
+            insertQuery.prepare("INSERT INTO DailyRecords ("
+                                "date, weight, systolicPressure, "
+                                "diastolicPressure, waistCircumference, mood, notes) "
+                                "VALUES (?, ?, ?, ?, ?, ?, ?)");
             insertQuery.addBindValue(date);
-            insertQuery.addBindValue(weight.toDouble());
-            insertQuery.addBindValue(systolic);
-            insertQuery.addBindValue(diastolic);
-            insertQuery.addBindValue(waist.toDouble());
-            insertQuery.addBindValue(mood);
+            insertQuery.addBindValue(weight.isEmpty() ? QVariant() : weight.toDouble());
+            insertQuery.addBindValue(systolic > 0 ? systolic : QVariant());
+            insertQuery.addBindValue(diastolic > 0 ? diastolic : QVariant());
+            insertQuery.addBindValue(waist.isEmpty() ? QVariant() : waist.toDouble());
+            insertQuery.addBindValue(mood.isEmpty() ? QVariant() : mood);
+            insertQuery.addBindValue(notes.isEmpty() ? QVariant() : notes);
             insertQuery.exec();
-        }
-
-        // Сохраняем вес в таблицу WeightMeasurements
-        if (!weight.isEmpty() && weight != "0") {
-            QSqlQuery checkWeightQuery(db);
-            checkWeightQuery.prepare("SELECT 1 FROM WeightMeasurements WHERE measurementDate = ? AND profileId = 1");
-            checkWeightQuery.addBindValue(date);
-            checkWeightQuery.exec();
-
-            if (checkWeightQuery.next()) {
-                QSqlQuery updateWeightQuery(db);
-                updateWeightQuery.prepare("UPDATE WeightMeasurements SET weight = ? "
-                                          "WHERE measurementDate = ? AND profileId = 1");
-                updateWeightQuery.addBindValue(weight.toDouble());
-                updateWeightQuery.addBindValue(date);
-                updateWeightQuery.exec();
-            } else {
-                QSqlQuery insertWeightQuery(db);
-                insertWeightQuery.prepare("INSERT INTO WeightMeasurements (profileId, weight, measurementDate) "
-                                          "VALUES (1, ?, ?)");
-                insertWeightQuery.addBindValue(weight.toDouble());
-                insertWeightQuery.addBindValue(date);
-                insertWeightQuery.exec();
-            }
         }
 
         db.commit();
@@ -229,3 +277,72 @@ void PregnancyCalendarManager::saveDayData(const QString &date, const QString &w
         qWarning() << "Failed to save day data, transaction rolled back";
     }
 }
+
+void PregnancyCalendarManager::addDailyPlan(const QString &date, const QString &planType,
+                                            const QString &description, const QString &time)
+{
+    QSqlDatabase db = m_dbManager.database();
+    db.transaction();
+
+    try {
+        // First get the dayId for the date
+        int dayId = -1;
+        QSqlQuery dayQuery(db);
+        dayQuery.prepare("SELECT id FROM DailyRecords WHERE date = ?");
+        dayQuery.addBindValue(date);
+
+        if (dayQuery.exec() && dayQuery.next()) {
+            dayId = dayQuery.value("id").toInt();
+        } else {
+            // Create new daily record if it doesn't exist
+            QSqlQuery insertDayQuery(db);
+            insertDayQuery.prepare("INSERT INTO DailyRecords (date) VALUES (?)");
+            insertDayQuery.addBindValue(date);
+            if (insertDayQuery.exec()) {
+                dayId = insertDayQuery.lastInsertId().toInt();
+            } else {
+                throw std::runtime_error("Failed to create daily record");
+            }
+        }
+
+        // Insert the new plan
+        QSqlQuery query(db);
+        query.prepare("INSERT INTO DailyPlans (dayId, planType, description, time, isCompleted) "
+                      "VALUES (?, ?, ?, ?, ?)");
+        query.addBindValue(dayId);
+        query.addBindValue(planType);
+        query.addBindValue(description);
+        query.addBindValue(time);
+        query.addBindValue(false);
+
+        if (!query.exec()) {
+            throw std::runtime_error("Failed to insert daily plan");
+        }
+
+        db.commit();
+    } catch (const std::exception &e) {
+        db.rollback();
+        qWarning() << "Failed to add daily plan:" << e.what();
+        //emit errorOccurred(tr("Failed to save daily plan"));
+    }
+}
+
+int PregnancyCalendarManager::lastInsertedPlanId() {
+    QSqlQuery query(m_dbManager.database());
+    query.exec("SELECT last_insert_rowid()");
+    if (query.next()) {
+        return query.value(0).toInt();
+    }
+    return -1;
+}
+
+void PregnancyCalendarManager::deletePlan(int planId) {
+    QSqlQuery query(m_dbManager.database());
+    query.prepare("DELETE FROM DailyPlans WHERE id = ?");
+    query.addBindValue(planId);
+    if (!query.exec()) {
+        qWarning() << "Failed to delete plan:" << query.lastError().text();
+    }
+}
+
+

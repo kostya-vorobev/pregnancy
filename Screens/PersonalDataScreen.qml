@@ -121,7 +121,7 @@ Item {
                     MyComponents.CustomTextField {
                         id: firstNameField
                         width: parent.width
-                        placeholderText: "Введите вашу фамилию"
+                        placeholderTextValue: "Введите вашу фамилию"
                         text: profile.firstName
                     }
                 }
@@ -143,7 +143,7 @@ Item {
                     MyComponents.CustomTextField {
                         id: lastNameField
                         width: parent.width
-                        placeholderText: "Введите ваше имя"
+                        placeholderTextValue: "Введите ваше имя"
                         text: profile.lastName
                     }
                 }
@@ -165,7 +165,7 @@ Item {
                     MyComponents.CustomTextField {
                         id: middleNameField
                         width: parent.width
-                        placeholderText: "Введите ваше отчество"
+                        placeholderTextValue: "Введите ваше отчество"
                         text: profile.middleName
                     }
                 }
@@ -187,7 +187,7 @@ Item {
                     MyComponents.CustomTextField {
                         id: heightField
                         width: parent.width
-                        placeholderText: "Введите ваш рост"
+                        placeholderTextValue: "Введите ваш рост"
                         inputMethodHints: Qt.ImhDigitsOnly
                         text: profile.height
                     }
@@ -210,7 +210,7 @@ Item {
                     MyComponents.CustomTextField {
                         id: weightField
                         width: parent.width
-                        placeholderText: "Введите ваш вес"
+                        placeholderTextValue: "Введите ваш вес"
                         inputMethodHints: Qt.ImhDigitsOnly
                         text: profile.weight
                     }

@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import Qt5Compat.GraphicalEffects
 import "../components" as MyComponents
 import PregnancyApp 1.0
 
@@ -14,23 +13,68 @@ Popup {
     padding: 20
 
     property var analysisManager
-    property var analysisTypes: analysisManager ? analysisManager.getAnalysisTypes(
-                                                      ) : []
+    property var analysisTypes: []
+    property var categories: []
+    property var parametersByCategory: ({})
     property int currentTypeId: -1
 
     signal analysisAdded(int typeId, real value, date testDate, string notes, string laboratory, bool isFasting)
+
+    // Инициализация данных при создании
+    Component.onCompleted: {
+        loadAnalysisData()
+    }
+
+    function loadAnalysisData() {
+        if (analysisManager) {
+            analysisTypes = analysisManager.getAnalysisTypes()
+            processAnalysisData()
+        }
+    }
+
+    function processAnalysisData() {
+        // Группируем анализы по категориям
+        var tempParamsByCategory = {}
+        var tempCategories = []
+
+        for (var i = 0; i < analysisTypes.length; i++) {
+            var type = analysisTypes[i]
+            var category = type.category
+
+            if (!tempParamsByCategory[category]) {
+                tempParamsByCategory[category] = []
+                tempCategories.push(category)
+            }
+            tempParamsByCategory[category].push(type)
+        }
+
+        categories = tempCategories
+        parametersByCategory = tempParamsByCategory
+
+        // Обновляем модели ComboBox
+        categoryCombo.model = categories
+        if (categories.length > 0) {
+            categoryCombo.currentIndex = 0
+            updateParametersCombo()
+        }
+    }
+
+    function updateParametersCombo() {
+        var currentCat = categoryCombo.currentText
+        if (currentCat && parametersByCategory[currentCat]) {
+            parameterCombo.model = parametersByCategory[currentCat]
+        } else {
+            parameterCombo.model = []
+        }
+        parameterCombo.currentIndex = -1
+        currentTypeId = -1
+    }
 
     background: Rectangle {
         radius: 10
         color: "#ffffff"
         border.color: "#e0e0e0"
         border.width: 1
-        layer.enabled: true
-        layer.effect: DropShadow {
-            radius: 5
-            samples: 10
-            color: "#20000000"
-        }
     }
 
     ColumnLayout {
@@ -57,25 +101,13 @@ Popup {
 
             MyComponents.CustomComboBox {
                 id: categoryCombo
-                model: {
-                    var cats = []
-                    var result = {}
-                    for (var i = 0; i < analysisTypes.length; i++) {
-                        var cat = analysisTypes[i].category
-                        if (!result[cat]) {
-                            cats.push(cat)
-                            result[cat] = true
-                        }
-                    }
-                    return cats
-                }
                 Layout.fillWidth: true
                 Layout.preferredHeight: 45
-                currentIndex: 0
-                onCurrentIndexChanged: {
-                    parameterCombo.model = getParametersByCategory(currentText)
-                    parameterCombo.currentIndex = -1
-                    currentTypeId = -1
+
+                onCurrentTextChanged: {
+                    if (currentText) {
+                        updateParametersCombo()
+                    }
                 }
             }
         }
@@ -85,7 +117,6 @@ Popup {
             spacing: 5
             Layout.fillWidth: true
 
-            //visible: categoryCombo.currentIndex >= 0
             Label {
                 text: "Показатель:"
                 font.pixelSize: 16
@@ -96,14 +127,16 @@ Popup {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 45
                 textRole: "displayName"
+
+                valueRole: "id"
                 onCurrentIndexChanged: {
                     if (currentIndex >= 0) {
-                        currentTypeId = currentValue
                         var type = model[currentIndex]
-                        valueInput.placeholderText = "Норма: "
-                                + (type.minValue !== undefined ? type.minValue + "-" : "")
-                                + (type.maxValue
-                                   || "") + " " + (type.unit || "")
+                        currentTypeId = type.id // Получаем id напрямую из модели
+                        valueInput.placeholderTextValue = formatRangeText(type)
+                    } else {
+                        currentTypeId = -1
+                        valueInput.placeholderTextValue = ""
                     }
                 }
             }
@@ -146,7 +179,7 @@ Popup {
                 id: laboratoryInput
                 Layout.fillWidth: true
                 Layout.preferredHeight: 45
-                placeholderText: "Название лаборатории"
+                placeholderTextValue: "Название лаборатории"
             }
         }
 
@@ -254,28 +287,33 @@ Popup {
         }
     }
 
-    function getParametersByCategory(category) {
-        var params = []
-        for (var i = 0; i < analysisTypes.length; i++) {
-            if (analysisTypes[i].category === category) {
-                params.push(analysisTypes[i])
-            }
-        }
-        return params
-    }
-
-    // Инициализация текущей даты
-    Component.onCompleted: {
-        datePicker.selectedDate = new Date()
+    function formatRangeText(type) {
+        if (!type)
+            return ""
+        var text = "Норма: "
+        if (type.minValue !== undefined)
+            text += type.minValue
+        if (type.maxValue !== undefined)
+            text += " - " + type.maxValue
+        if (type.unit)
+            text += " " + type.unit
+        return text
     }
 
     function openDialog() {
-        categoryCombo.currentIndex = -1
-        parameterCombo.currentIndex = -1
+        // Перезагружаем данные при каждом открытии
+        loadAnalysisData()
+
+        // Сбрасываем состояние
+        if (categoryCombo.count > 0) {
+            categoryCombo.currentIndex = 0
+            updateParametersCombo()
+        }
+
         valueInput.clear()
         laboratoryInput.clear()
         notesInput.clear()
-        fastingCheckBox.checked = true
+        fastingCheckBox.checked = false
         datePicker.selectedDate = new Date()
         open()
     }

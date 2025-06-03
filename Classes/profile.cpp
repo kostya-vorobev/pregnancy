@@ -96,6 +96,7 @@ void Profile::setProfilePhoto(const QString &profilePhoto) {
 }
 
 
+
 // Остальные сеттеры аналогично...
 
 // Database operations
@@ -152,21 +153,30 @@ QList<Profile*> Profile::getAllProfiles()
 bool Profile::loadData() {
     if (m_id <= 0) return false;
 
-    // Загрузка из базы данных
+    m_status = Loading;
+    emit statusChanged();
+
     QSqlQuery query;
     query.prepare("SELECT * FROM Profile WHERE id = :id");
     query.bindValue(":id", m_id);
 
     if (!query.exec() || !query.next()) {
+        m_status = Error;
+        emit statusChanged();
         return false;
     }
 
     m_firstName = query.value("firstName").toString();
     m_lastName = query.value("lastName").toString();
     m_middleName = query.value("middleName").toString();
+    m_dateBirth = query.value("dateBirth").toDate();
     m_height = query.value("height").toInt();
     m_weight = query.value("weight").toDouble();
+    m_bloodType = query.value("bloodType").toString();
+    m_profilePhoto = query.value("profilePhoto").toString();
 
+    m_status = Ready;
+    emit statusChanged();
     emit dataLoaded();
     return true;
 }
@@ -176,16 +186,19 @@ bool Profile::save() {
 
     if (m_id <= 0) {
         // Новая запись
-        query.prepare("INSERT INTO Profile (firstName, lastName, middleName, height, weight) "
-                      "VALUES (:firstName, :lastName, :middleName, :height, :weight)");
+        query.prepare("INSERT INTO Profile (firstName, lastName, middleName, dateBirth, height, weight, bloodType, profilePhoto) "
+                      "VALUES (:firstName, :lastName, :middleName, :dateBirth, :height, :weight, :bloodType, :profilePhoto)");
     } else {
         // Обновление
         query.prepare("UPDATE Profile SET "
                       "firstName = :firstName, "
                       "lastName = :lastName, "
                       "middleName = :middleName, "
+                      "dateBirth = :dateBirth, "
                       "height = :height, "
-                      "weight = :weight "
+                      "weight = :weight, "
+                      "bloodType = :bloodType, "
+                      "profilePhoto = :profilePhoto "
                       "WHERE id = :id");
         query.bindValue(":id", m_id);
     }
@@ -194,10 +207,14 @@ bool Profile::save() {
     query.bindValue(":firstName", m_firstName);
     query.bindValue(":lastName", m_lastName);
     query.bindValue(":middleName", m_middleName);
+    query.bindValue(":dateBirth", m_dateBirth);
     query.bindValue(":height", m_height);
     query.bindValue(":weight", m_weight);
+    query.bindValue(":bloodType", m_bloodType);
+    query.bindValue(":profilePhoto", m_profilePhoto);
 
     if (!query.exec()) {
+        qWarning() << "Failed to save profile:" << query.lastError().text();
         return false;
     }
 
@@ -207,6 +224,34 @@ bool Profile::save() {
 
     emit dataSaved();
     return true;
+}
+
+bool Profile::copyProfilePhoto(const QString &sourcePath) {
+    if (sourcePath.isEmpty()) return false;
+
+    // Определяем путь для сохранения фото
+    QString appDataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    QDir appDataDir(appDataPath);
+    if (!appDataDir.exists()) {
+        appDataDir.mkpath(".");
+    }
+
+    QString destFileName = QString("profile_%1.%2").arg(m_id).arg(QFileInfo(sourcePath).suffix());
+    QString destPath = appDataDir.filePath(destFileName);
+
+    // Удаляем старое фото, если оно есть
+    if (!m_profilePhoto.isEmpty() && m_profilePhoto != destPath) {
+        QFile::remove(m_profilePhoto);
+    }
+
+    // Копируем новое фото
+    if (QFile::copy(sourcePath, destPath)) {
+        m_profilePhoto = destPath;
+        emit profilePhotoChanged();
+        return true;
+    }
+
+    return false;
 }
 
 bool Profile::remove()

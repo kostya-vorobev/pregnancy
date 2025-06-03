@@ -14,6 +14,7 @@ TextField {
     property bool showBorder: true
     property bool showShadow: true
     property bool showClearButton: true
+    property string placeholderTextValue: ""
 
     height: 50
     font {
@@ -32,6 +33,11 @@ TextField {
     // Анимация при фокусе
     property real focusAnimationDuration: 150
     property real borderWidth: focus ? 2 : 1
+
+    Behavior on placeholderTextColor {
+        enabled: false
+    }
+
     Behavior on borderWidth {
         NumberAnimation {
             duration: focusAnimationDuration
@@ -87,18 +93,22 @@ TextField {
         }
     }
 
-    // Плейсхолдер с анимацией
-    Label {
-        id: placeholder
+    // Кастомный плейсхолдер
+    Text {
+        id: customPlaceholder
         visible: textField.text.length === 0
-        anchors.fill: parent
-        anchors.leftMargin: textField.leftPadding
-        anchors.rightMargin: textField.rightPadding
-        verticalAlignment: Text.AlignVCenter
-        text: placeholderText
-        color: placeholderColor
+        text: placeholderTextValue // или свойство
+        color: textField.placeholderColor
         font: textField.font
-        opacity: 0.7
+        anchors {
+            left: parent.left
+            verticalCenter: parent.verticalCenter
+            leftMargin: textField.leftPadding
+            rightMargin: textField.rightPadding + (clearButton.visible ? clearButton.width : 0)
+        }
+        width: parent.width - (textField.leftPadding + textField.rightPadding
+                               + (clearButton.visible ? clearButton.width : 0))
+        elide: Text.ElideRight
     }
 
     // Анимация при наведении
@@ -111,5 +121,21 @@ TextField {
         onExited: if (!textField.focus)
                       textField.borderWidth = 1
         onClicked: textField.forceActiveFocus()
+    }
+
+    onTextChanged: {
+        checkPlaceholderText()
+    }
+
+    onFocusChanged: {
+        checkPlaceholderText()
+    }
+
+    function checkPlaceholderText() {
+        if (text.length > 0) {
+            placeholderText = ""
+        } else {
+            placeholderText = ""
+        }
     }
 }

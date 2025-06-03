@@ -12,7 +12,7 @@ PregnancyProgress::PregnancyProgress(QObject *parent)
 }
 
 PregnancyProgress::PregnancyProgress(int id, int profileId, const QDate &startDate,
-                                     int currentWeek, const QDate &lastUpdated,
+                                     int currentWeek, const QDate &lastUpdated, const QDate &estimatedDueDate,
                                      QObject *parent)
     : QObject(parent), m_id(id), m_profileId(profileId),
     m_startDate(startDate), m_currentWeek(currentWeek),
@@ -63,6 +63,27 @@ void PregnancyProgress::setLastUpdated(const QDate &lastUpdated) {
     }
 }
 
+void PregnancyProgress::calculateStartDateFromWeek(int week) {
+    if (week <= 0) return;
+
+    QDate newStartDate = QDate::currentDate().addDays(-7 * week);
+    setStartDate(newStartDate);
+
+    // Рассчитываем предполагаемую дату родов (40 недель от новой даты начала)
+    emit estimatedDueDateChanged();
+}
+
+QDate PregnancyProgress::estimatedDueDate() const {
+    if (!m_startDate.isValid()) return QDate();
+
+    // Беременность длится примерно 40 недель
+    return m_startDate.addDays(40 * 7);
+}
+
+QDate PregnancyProgress::calculateDueDate() const {
+    return estimatedDueDate();
+}
+
 bool PregnancyProgress::loadData()
 {
     if (m_profileId <= 0) {
@@ -76,6 +97,7 @@ bool PregnancyProgress::loadData()
         m_startDate = progress->startDate();
         m_currentWeek = progress->currentWeek();
         m_lastUpdated = progress->lastUpdated();
+        m_estimatedDueDate = progress->estimatedDueDate();
 
         progress->deleteLater();
         emit dataLoaded();
@@ -87,37 +109,69 @@ bool PregnancyProgress::loadData()
     m_startDate = QDate();
     m_currentWeek = 0;
     m_lastUpdated = QDate::currentDate();
+    m_estimatedDueDate = QDate();
 
     return false;
 }
 
 // Database operations
-bool PregnancyProgress::save()
-{
+bool PregnancyProgress::save() {
+    if (!isDataValid()) {
+        qWarning() << "Invalid pregnancy data, cannot save";
+        return false;
+    }
+
     QSqlQuery query;
+    QDate dueDate = calculateDueDate();
+    QDate currentDate = QDate::currentDate();
+
+    // Для отладки
+    qDebug() << "Attempting to save pregnancy data:";
+    qDebug() << "ID:" << m_id;
+    qDebug() << "Profile ID:" << m_profileId;
+    qDebug() << "Start Date:" << m_startDate;
+    qDebug() << "Current Week:" << m_currentWeek;
+    qDebug() << "Due Date:" << dueDate;
 
     if (m_id == -1) {
-        // Insert new record
-        query.prepare("INSERT INTO PregnancyProgress (profileId, startDate, currentWeek, lastUpdated) "
-                      "VALUES (:profileId, :startDate, :currentWeek, :lastUpdated)");
+        // INSERT запрос
+        if (!query.prepare("INSERT INTO PregnancyProgress "
+                           "(profileId, startDate, currentWeek, lastUpdated, estimatedDueDate) "
+                           "VALUES (:profileId, :startDate, :currentWeek, :lastUpdated, :estimatedDueDate)")) {
+            qWarning() << "Prepare INSERT failed:" << query.lastError();
+            return false;
+        }
+
+        query.bindValue(":profileId", m_profileId);
+        query.bindValue(":startDate", m_startDate.toString(Qt::ISODate));
+        query.bindValue(":currentWeek", m_currentWeek);
+        query.bindValue(":lastUpdated", currentDate.toString(Qt::ISODate));
+        query.bindValue(":estimatedDueDate", dueDate.toString(Qt::ISODate));
     } else {
-        // Update existing record
-        query.prepare("UPDATE PregnancyProgress SET "
-                      "profileId = :profileId, "
-                      "startDate = :startDate, "
-                      "currentWeek = :currentWeek, "
-                      "lastUpdated = :lastUpdated "
-                      "WHERE id = :id");
+        // UPDATE запрос
+        if (!query.prepare("UPDATE PregnancyProgress SET "
+                           "profileId = :profileId, "
+                           "startDate = :startDate, "
+                           "currentWeek = :currentWeek, "
+                           "lastUpdated = :lastUpdated, "
+                           "estimatedDueDate = :estimatedDueDate "
+                           "WHERE id = :id")) {
+            qWarning() << "Prepare UPDATE failed:" << query.lastError();
+            return false;
+        }
+
+        query.bindValue(":profileId", m_profileId);
+        query.bindValue(":startDate", m_startDate.toString(Qt::ISODate));
+        query.bindValue(":currentWeek", m_currentWeek);
+        query.bindValue(":lastUpdated", currentDate.toString(Qt::ISODate));
+        query.bindValue(":estimatedDueDate", dueDate.toString(Qt::ISODate));
         query.bindValue(":id", m_id);
     }
 
-    query.bindValue(":profileId", m_profileId);
-    query.bindValue(":startDate", m_startDate);
-    query.bindValue(":currentWeek", m_currentWeek);
-    query.bindValue(":lastUpdated", m_lastUpdated);
-
     if (!query.exec()) {
-        qWarning() << "Failed to save pregnancy progress:" << query.lastError().text();
+        qWarning() << "Failed to execute query:" << query.lastError().text();
+        qWarning() << "Query:" << query.lastQuery();
+        qWarning() << "Bound values:" << query.boundValues();
         return false;
     }
 
@@ -125,6 +179,7 @@ bool PregnancyProgress::save()
         m_id = query.lastInsertId().toInt();
     }
 
+    qDebug() << "Pregnancy data saved successfully";
     emit dataLoaded();
     return true;
 }
@@ -164,7 +219,8 @@ PregnancyProgress* PregnancyProgress::getProgress(int id)
             query.value("profileId").toInt(),
             query.value("startDate").toDate(),
             query.value("currentWeek").toInt(),
-            query.value("lastUpdated").toDate()
+            query.value("lastUpdated").toDate(),
+            query.value("estimatedDueDate").toDate()
             );
     }
 
@@ -188,7 +244,8 @@ PregnancyProgress* PregnancyProgress::getProgressByProfile(int profileId)
             query.value("profileId").toInt(),
             query.value("startDate").toDate(),
             query.value("currentWeek").toInt(),
-            query.value("lastUpdated").toDate()
+            query.value("lastUpdated").toDate(),
+            query.value("estimatedDueDate").toDate()
             );
     }
 
@@ -206,7 +263,8 @@ QList<PregnancyProgress*> PregnancyProgress::getAllProgress()
             query.value("profileId").toInt(),
             query.value("startDate").toDate(),
             query.value("currentWeek").toInt(),
-            query.value("lastUpdated").toDate()
+            query.value("lastUpdated").toDate(),
+            query.value("estimatedDueDate").toDate()
             ));
     }
 

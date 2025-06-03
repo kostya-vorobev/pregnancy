@@ -115,5 +115,6 @@
         <file>Style/Style.qml</file>
         <file>components/CustomSlider.qml</file>
         <file>components/CustomComboBoxStandart.qml</file>
+        <file>Images/avatar/default-avatar.png</file>
     </qresource>
 </RCC>

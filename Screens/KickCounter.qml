@@ -338,10 +338,10 @@ Page {
                 wrapMode: Text.WordWrap
             }
 
-            TextField {
+            MyComponents.CustomTextField {
                 id: notesField
                 Layout.fillWidth: true
-                placeholderText: "Заметки (необязательно)"
+                placeholderTextValue: "Заметки (необязательно)"
             }
         }
 

@@ -132,7 +132,7 @@ Item {
             MyComponents.CustomTextField {
                 id: searchField
                 Layout.fillWidth: true
-                placeholderText: "Поиск показателей..."
+                placeholderTextValue: "Поиск показателей..."
                 onTextChanged: searchQuery = text
             }
 

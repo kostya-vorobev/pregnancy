@@ -13,6 +13,7 @@ Item {
     property int profileId: 1
     property color textColor: "#4a148c"
     property color primaryColor: "#9c27b0"
+    property string estimatedDueDate: ""
 
     // Данные пользователя
     property Profile userProfile: Profile {
@@ -31,17 +32,36 @@ Item {
         onDataLoaded: {
             console.log("Данные недели беременности загружены")
             updateUI()
+            calculateDueDate()
         }
 
         onCurrentWeekChanged: {
             weekInfo.weekNumber = currentWeek
             updateUI()
+            calculateStartDate()
+            calculateDueDate()
         }
     }
 
     PregnancyWeek {
         id: weekInfo
         weekNumber: pregnancyProgress.currentWeek
+    }
+
+    function calculateStartDate() {
+        if (pregnancyProgress.currentWeek > 0) {
+            pregnancyProgress.calculateStartDateFromWeek(
+                        pregnancyProgress.currentWeek)
+        }
+    }
+
+    function calculateDueDate() {
+        if (pregnancyProgress.startDate) {
+            estimatedDueDate = Qt.formatDate(pregnancyProgress.calculateDueDate(
+                                                 ), "dd.MM.yyyy")
+        } else {
+            estimatedDueDate = ""
+        }
     }
 
     function updateUI() {
@@ -59,11 +79,34 @@ Item {
         babyWeightText.text = "● Вес: " + (weekInfo.babyWeight || "0") + " г"
         developmentDescriptionText.text = weekInfo.developmentDescription
                 || "Описание недоступно"
+
+        // Добавляем информацию о дате родов
+        if (estimatedDueDate !== "") {
+            var infoItems = []
+            if (babySizeText.text !== "● Размер: неизвестно")
+                infoItems.push(babySizeText.text)
+            if (babyLengthText.text !== "● Длина: 0 см")
+                infoItems.push(babyLengthText.text)
+            if (babyWeightText.text !== "● Вес: 0 г")
+                infoItems.push(babyWeightText.text)
+
+            infoItems.push("● Предполагаемая дата родов: " + estimatedDueDate)
+
+            babySizeText.text = infoItems.length > 0 ? infoItems[0] : ""
+            babyLengthText.text = infoItems.length > 1 ? infoItems[1] : ""
+            babyWeightText.text = infoItems.length > 2 ? infoItems[2] : ""
+            if (infoItems.length > 3) {
+                dueDateText.text = infoItems[3]
+                dueDateText.visible = true
+            } else {
+                dueDateText.visible = false
+            }
+        }
     }
 
     function saveProgress() {
-        // Обновляем текущую неделю из ComboBox
         pregnancyProgress.currentWeek = weekComboBox.currentIndex + 1
+        calculateStartDate()
 
         if (pregnancyProgress.save()) {
             console.log("Данные беременности сохранены")
@@ -133,10 +176,10 @@ Item {
                                           }, (_, i) => `${i + 1} неделя`)
                         fontSize: Math.min(16, root.width * 0.045)
                         onCurrentIndexChanged: {
-                            // Обновляем информацию сразу при изменении выбора
                             var selectedWeek = currentIndex + 1
                             weekInfo.weekNumber = selectedWeek
                             updateWeekInfo(selectedWeek)
+                            calculateDueDate()
                         }
                     }
                 }
@@ -208,6 +251,18 @@ Item {
                         }
 
                         Text {
+                            id: dueDateText
+                            text: "● Предполагаемая дата родов: " + estimatedDueDate
+                            font {
+                                family: "Comfortaa"
+                                pixelSize: Math.min(14, root.width * 0.04)
+                            }
+                            color: "#2e7d32"
+                            width: parent.width
+                            visible: estimatedDueDate !== ""
+                        }
+
+                        Text {
                             id: developmentDescriptionText
                             text: weekInfo.developmentDescription
                                   || "Описание недоступно"
@@ -250,7 +305,6 @@ Item {
     }
 
     Component.onCompleted: {
-        // Загружаем данные профиля при создании компонента
         profileData.id = profileId
         profileData.loadData()
     }

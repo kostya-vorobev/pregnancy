@@ -16,10 +16,16 @@
         <provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.qtprovider" android:exported="false" android:grantUriPermissions="true">
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/qtprovider_paths"/>
         </provider>
+        <service
+            android:name="org.qtproject.qt.android.bindings.QtService"
+            android:enabled="true"
+            android:exported="false" />
     </application>
     <!-- Add these permissions before the application tag -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <!-- For Android 10+ -->
     <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION"/>

@@ -136,10 +136,10 @@ Page {
                         font.pixelSize: 20
                     }
 
-                    TextField {
+                    MyComponents.CustomTextField {
                         id: searchField
                         Layout.fillWidth: true
-                        placeholderText: "Поиск статей..."
+                        placeholderTextValue: "Поиск статей..."
                         onTextChanged: {
                             searchText = text
                             updateFilteredArticles()

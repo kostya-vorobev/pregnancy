@@ -1,5 +1,7 @@
 import QtQuick
 import QtQuick.Effects
+import Qt5Compat.GraphicalEffects
+import QtQuick.Layouts
 
 Rectangle {
     id: root
@@ -10,8 +12,10 @@ Rectangle {
     property color hoverColor: Qt.lighter(buttonColor, 1.1)
     property int fontSize: 16
     property bool boldText: false
-    property real shadowSize: 3
-    property real shadowOpacity: 0.3
+    property real shadowSize: 2
+    property real shadowOpacity: 0.1
+    property bool showBorder: true
+    property bool showShadow: true
     property alias fontFamily: buttonText.font.family
     property bool flat: false // Новое свойство flat
 
@@ -27,13 +31,24 @@ Rectangle {
     border.width: flat ? 1 : 0
 
     // Эффекты включаем только для не-flat кнопок
-    layer.enabled: !flat
+
+
+    /*layer.enabled: !flat
     layer.effect: MultiEffect {
         shadowEnabled: !flat && shadowSize > 0
         shadowColor: Qt.rgba(0, 0, 0, shadowOpacity)
         shadowVerticalOffset: shadowSize
-        shadowBlur: 0.5
-        shadowScale: 1.05
+        shadowBlur: 0.1
+        shadowScale: 1
+    }*/
+    layer.enabled: showShadow
+    layer.effect: DropShadow {
+        transparentBorder: true
+        radius: 8
+        samples: 16
+        color: "#20000000"
+        verticalOffset: 5
+        visible: showShadow
     }
 
     Text {

@@ -7,7 +7,9 @@ SOURCES += \
     Classes/dailytip.cpp \
     Classes/databasemanager.cpp \
     Classes/dietmanager.cpp \
+    Classes/exercisemanager.cpp \
     Classes/fetalkickmanager.cpp \
+    Classes/notificationmanager.cpp \
     Classes/pregnancycalendarmanager.cpp \
     Classes/pregnancyprogress.cpp \
     Classes/pregnancyweek.cpp \
@@ -24,7 +26,9 @@ HEADERS += \
     Classes/dailytip.h \
     Classes/databasemanager.h \
     Classes/dietmanager.h \
+    Classes/exercisemanager.h \
     Classes/fetalkickmanager.h \
+    Classes/notificationmanager.h \
     Classes/pregnancycalendarmanager.h \
     Classes/pregnancyprogress.h \
     Classes/pregnancyweek.h \

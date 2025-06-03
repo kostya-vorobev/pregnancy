@@ -4,6 +4,7 @@
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QFontDatabase>
+#include <QTimer>
 #include "Classes/databasemanager.h"
 #include "Classes/profile.h"
 #include "Classes/pregnancyprogress.h"
@@ -18,6 +19,9 @@
 #include "Classes/dietmanager.h"
 #include "Classes/analysismanager.h"
 #include "Classes/pregnancycalendarmanager.h"
+#include "Classes/exercisemanager.h"
+#include "Classes/notificationmanager.h"
+
 
 int main(int argc, char *argv[])
 {
@@ -48,6 +52,8 @@ int main(int argc, char *argv[])
     qmlRegisterType<DietManager>("PregnancyApp", 1, 0, "DietManager");
     qmlRegisterType<AnalysisManager>("PregnancyApp", 1, 0, "AnalysisManager");
     qmlRegisterType<PregnancyCalendarManager>("PregnancyApp", 1, 0, "PregnancyCalendarManager");
+    qmlRegisterType<Profile>("PregnancyApp", 1, 0, "Profile");
+    qmlRegisterType<NotificationManager>("PregnancyApp", 1, 0, "NotificationManager");
 
     QQmlApplicationEngine engine;
 
@@ -60,7 +66,16 @@ int main(int argc, char *argv[])
     PregnancyCalendarManager pregnancyCalendarManager;
     engine.rootContext()->setContextProperty("pregnancyCalendarManager", &pregnancyCalendarManager);
 
+    ExerciseManager exerciseManager;
+    engine.rootContext()->setContextProperty("exerciseManager", &exerciseManager);
 
+    NotificationManager notificationManager;
+    engine.rootContext()->setContextProperty("notificationManager", &notificationManager);
+
+    QTimer notificationTimer;
+    QObject::connect(&notificationTimer, &QTimer::timeout,
+                     &notificationManager, &NotificationManager::checkTasksForNotifications);
+    notificationTimer.start(15 * 60 * 1000);
     engine.load(QUrl(QStringLiteral("qrc:/main.qml")));
 
     return app.exec();

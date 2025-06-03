@@ -31,6 +31,8 @@ private:
     QString m_databasePath;
     bool createTables();
     bool insertInitialData();
+    bool recreateDatabase();
+    bool deleteDatabase();
 };
 
 #endif // DBMANAGER_H

@@ -13,12 +13,25 @@ Item {
     property alias currentText: displayText.text
     property int fontSize: 16
     signal activated(int index)
+    property string valueRole: "" // Добавляем новое свойство
+    property var currentValue: undefined // Добавляем для хранения значения
 
     // Функция для получения текста из модели
     function getDisplayText(item) {
-        if (textRole === "" || typeof item !== "object")
+        if (typeof item !== "object")
             return item
-        return item[textRole] || ""
+        if (textRole && item[textRole] !== undefined)
+            return item[textRole]
+        return ""
+    }
+
+    // Добавляем функцию получения значения
+    function getItemValue(item) {
+        if (typeof item !== "object")
+            return item
+        if (valueRole && item[valueRole] !== undefined)
+            return item[valueRole]
+        return item // Если valueRole не указан, возвращаем весь объект
     }
 
     // Основной прямоугольник комбобокса
@@ -161,6 +174,8 @@ Item {
                     hoverEnabled: true
                     onClicked: {
                         root.currentIndex = index
+                        root.currentValue = getItemValue(
+                                    modelData) // Сохраняем значение
                         root.activated(index)
                         popup.close()
                     }
